@@ -1,0 +1,14 @@
+{
+  "name": "cycle-annuel",
+  "version": "1.0.0",
+  "description": "Cycle - application annuelle nutrition, sport, cardio et organisation",
+  "main": "server.js",
+  "scripts": {
+    "start": "node server.js"
+  },
+  "engines": { "node": ">=18" },
+  "dependencies": {
+    "cookie-parser": "^1.4.6",
+    "express": "^4.19.2"
+  }
+}
