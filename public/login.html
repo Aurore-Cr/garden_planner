@@ -1,0 +1,48 @@
+<!doctype html>
+<html lang="fr">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Cycle — connexion</title>
+<style>
+  html,body{margin:0;height:100%;}
+  body{
+    display:flex;align-items:center;justify-content:center;
+    background:linear-gradient(160deg,#2C1B47,#3A2360 45%,#5A2E5E);
+    font-family:system-ui,-apple-system,sans-serif;color:#fff;
+  }
+  .box{background:rgba(255,255,255,0.08);backdrop-filter:blur(6px);border:1px solid rgba(255,255,255,0.15);
+    border-radius:20px;padding:32px 26px;width:280px;text-align:center;}
+  .box h1{font-size:22px;margin:0 0 4px;}
+  .box p{font-size:13px;color:rgba(255,255,255,0.7);margin:0 0 20px;}
+  input{width:100%;padding:12px 14px;border-radius:12px;border:1px solid rgba(255,255,255,0.25);
+    background:rgba(255,255,255,0.1);color:#fff;font-size:20px;text-align:center;letter-spacing:0.2em;box-sizing:border-box;}
+  input::placeholder{color:rgba(255,255,255,0.4);letter-spacing:normal;font-size:14px;}
+  button{margin-top:14px;width:100%;padding:12px;border:none;border-radius:12px;
+    background:linear-gradient(135deg,#B65FCF,#6E7FE0);color:#fff;font-weight:700;font-size:15px;cursor:pointer;}
+  .err{color:#FFB4C6;font-size:13px;margin-top:10px;min-height:16px;}
+</style>
+</head>
+<body>
+  <form class="box" id="f">
+    <h1>🌸 Cycle</h1>
+    <p>Entre ton code d'accès</p>
+    <input id="pin" type="password" inputmode="numeric" placeholder="Code" autofocus>
+    <button type="submit">Entrer</button>
+    <div class="err" id="err"></div>
+  </form>
+<script>
+document.getElementById('f').addEventListener('submit', async (e)=>{
+  e.preventDefault();
+  const pin = document.getElementById('pin').value;
+  const err = document.getElementById('err');
+  err.textContent = '';
+  try{
+    const r = await fetch('/api/login', {method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify({pin})});
+    const d = await r.json();
+    if(d.ok){ window.location.href = '/'; } else { err.textContent = d.error || 'Code incorrect'; }
+  }catch(e){ err.textContent = 'Erreur réseau'; }
+});
+</script>
+</body>
+</html>
