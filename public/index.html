@@ -413,6 +413,49 @@ function buildJumpRopeProgram(){
 }
 const JUMP_ROPE_PROGRAM = buildJumpRopeProgram();
 
+/* ============================= BOXE / MMA : SAC DE FRAPPE EN LIBRE ACCES (12 mois) =============================
+   Séances pensées pour un entraînement en autonomie sur sac de frappe (sans coach), inspirées des structures
+   classiques d'entraînement boxe pour débutant (échauffement / rounds techniques / récupération / retour au calme). */
+function buildBoxingProgram(){
+  const months = [
+    {mois:1, titre:"Découverte de la garde et des appuis", rounds:4, dureeRound:120, repos:60,
+      combos:["Jab (direct du bras avant)","Jab - Jab"],
+      note:"Priorité à la garde, à l'équilibre et au relâchement — pas de vitesse pour l'instant."},
+    {mois:2, titre:"Jab - Direct", rounds:4, dureeRound:120, repos:60,
+      combos:["Jab - Direct (cross)","Jab - Jab - Direct"],
+      note:"Bien revenir en garde après chaque frappe."},
+    {mois:3, titre:"Ajout du crochet", rounds:5, dureeRound:120, repos:60,
+      combos:["Jab - Direct - Crochet avant","Crochet arrière seul"]},
+    {mois:4, titre:"Déplacements + combos", rounds:5, dureeRound:150, repos:45,
+      combos:["Jab - Direct - Crochet avant - Crochet arrière","Déplacement latéral + Jab"],
+      note:"Travailler le pas chassé entre les rounds de frappe."},
+    {mois:5, titre:"Uppercuts", rounds:5, dureeRound:150, repos:45,
+      combos:["Jab - Uppercut avant","Direct - Uppercut arrière - Crochet avant"]},
+    {mois:6, titre:"Enchaînements longs", rounds:6, dureeRound:150, repos:45,
+      combos:["Jab - Direct - Crochet - Uppercut - Crochet","Esquive + contre Direct"]},
+    {mois:7, titre:"Volume & cardio", rounds:6, dureeRound:180, repos:45,
+      combos:["Enchaînement libre 15-20 sec puis relâchement","Déplacements + jab actif en continu"],
+      note:"L'objectif devient l'endurance : rester relâchée sur toute la durée du round."},
+    {mois:8, titre:"Intensité par intervalles", rounds:6, dureeRound:180, repos:30,
+      combos:["30 sec explosif / 30 sec technique, en alternance sur le round"]},
+    {mois:9, titre:"Défense active", rounds:6, dureeRound:180, repos:30,
+      combos:["Esquive latérale + Direct - Crochet","Blocage avant-bras + riposte Jab - Direct"]},
+    {mois:10, titre:"MMA libre : coups de genou / de pied bas", rounds:6, dureeRound:180, repos:30,
+      combos:["Jab - Direct - Genou","Crochet - Coup de pied bas (low kick)"],
+      note:"Uniquement si le sac et l'espace le permettent en sécurité ; sinon rester sur les poings."},
+    {mois:11, titre:"Consolidation", rounds:7, dureeRound:180, repos:30,
+      combos:["Enchaînement complet au choix, 5 coups minimum, en variant le rythme"]},
+    {mois:12, titre:"Bilan annuel", rounds:8, dureeRound:180, repos:30,
+      combos:["Séance libre : mixer tous les enchaînements travaillés dans l'année"],
+      note:"Comparer le ressenti et le nombre de rounds tenus au mois 1."},
+  ];
+  months.forEach(m=> m.detail = `${m.rounds} rounds de ${Math.round(m.dureeRound/60*10)/10} min, repos ${m.repos} sec entre les rounds.${m.note?' '+m.note:''}`);
+  return months;
+}
+const BOXING_PROGRAM = buildBoxingProgram();
+const BOXING_ECHAUFFEMENT = "5 min : corde à sauter ou jogging sur place, rotations d'épaules/hanches/poignets, ombre (shadow-boxing) à vide sans le sac.";
+const BOXING_RETOUR_CALME = "Étirements épaules/dos/mollets, respiration calme 2-3 min, hydratation.";
+
 /* ============================= TRACTIONS : 10 ETAPES ============================= */
 const MEASUREMENT_FIELDS = [
   ['cou','Cou'], ['epaules','Épaules'], ['poitrine','Poitrine'], ['sousPoitrine','Sous-poitrine'],
@@ -434,35 +477,68 @@ const PULLUP_STAGES = [
 
 /* ============================= RENFORCEMENT : EXERCICES ============================= */
 const STRENGTH_EXERCISES = {
-  debutante:[
-    {name:"Squat au poids du corps", series:3, reps:"12-15", repos:60, poids:false},
-    {name:"Fentes statiques", series:3, reps:"10/jambe", repos:60, poids:false},
-    {name:"Pont fessier", series:3, reps:"15", repos:45, poids:false},
-    {name:"Rowing élastique", series:3, reps:"12-15", repos:60, poids:false},
-    {name:"Élévations latérales (poids libres)", series:3, reps:"12", repos:45, poids:true},
-    {name:"Gainage planche (genoux si besoin)", series:3, reps:"20-30 sec", repos:45, poids:false},
-    {name:"Extension dos sur ballon de gym", series:3, reps:"12", repos:45, poids:false},
-  ],
-  intermediaire:[
-    {name:"Squat gobelet (poids libre)", series:4, reps:"10-12", repos:75, poids:true},
-    {name:"Fentes marchées", series:3, reps:"12/jambe", repos:60, poids:true},
-    {name:"Pont fessier sur ballon de gym", series:3, reps:"15", repos:60, poids:false},
-    {name:"Rowing élastique unilatéral", series:3, reps:"12/bras", repos:60, poids:false},
-    {name:"Développé épaules (poids libres)", series:3, reps:"10-12", repos:60, poids:true},
-    {name:"Gainage planche complète", series:3, reps:"40-45 sec", repos:45, poids:false},
-    {name:"Superman sur ballon de gym", series:3, reps:"12", repos:45, poids:false},
-    {name:"Tirage vertical élastique (assisté)", series:3, reps:"10-12", repos:75, poids:false},
-  ],
-  avancee:[
-    {name:"Squat bulgare (poids libres)", series:4, reps:"10/jambe", repos:90, poids:true},
-    {name:"Fentes sautées contrôlées", series:3, reps:"10/jambe", repos:75, poids:false},
-    {name:"Pont fessier unilatéral", series:3, reps:"12/jambe", repos:60, poids:true},
-    {name:"Rowing élastique lourd", series:4, reps:"10-12", repos:75, poids:false},
-    {name:"Développé épaules unilatéral", series:3, reps:"10/bras", repos:60, poids:true},
-    {name:"Gainage planche + levée de jambe", series:3, reps:"45 sec", repos:45, poids:false},
-    {name:"Tractions négatives (barre)", series:3, reps:"3-5", repos:120, poids:false},
-    {name:"Extensions dos + rotation (ballon de gym)", series:3, reps:"12", repos:45, poids:false},
-  ],
+  maison:{
+    debutante:[
+      {name:"Squat au poids du corps", series:3, reps:"12-15", repos:60, poids:false},
+      {name:"Fentes statiques", series:3, reps:"10/jambe", repos:60, poids:false},
+      {name:"Pont fessier", series:3, reps:"15", repos:45, poids:false},
+      {name:"Rowing élastique", series:3, reps:"12-15", repos:60, poids:false},
+      {name:"Élévations latérales (poids libres)", series:3, reps:"12", repos:45, poids:true},
+      {name:"Gainage planche (genoux si besoin)", series:3, reps:"20-30 sec", repos:45, poids:false},
+      {name:"Extension dos sur ballon de gym", series:3, reps:"12", repos:45, poids:false},
+    ],
+    intermediaire:[
+      {name:"Squat gobelet (poids libre)", series:4, reps:"10-12", repos:75, poids:true},
+      {name:"Fentes marchées", series:3, reps:"12/jambe", repos:60, poids:true},
+      {name:"Pont fessier sur ballon de gym", series:3, reps:"15", repos:60, poids:false},
+      {name:"Rowing élastique unilatéral", series:3, reps:"12/bras", repos:60, poids:false},
+      {name:"Développé épaules (poids libres)", series:3, reps:"10-12", repos:60, poids:true},
+      {name:"Gainage planche complète", series:3, reps:"40-45 sec", repos:45, poids:false},
+      {name:"Superman sur ballon de gym", series:3, reps:"12", repos:45, poids:false},
+      {name:"Tirage vertical élastique (assisté)", series:3, reps:"10-12", repos:75, poids:false},
+    ],
+    avancee:[
+      {name:"Squat bulgare (poids libres)", series:4, reps:"10/jambe", repos:90, poids:true},
+      {name:"Fentes sautées contrôlées", series:3, reps:"10/jambe", repos:75, poids:false},
+      {name:"Pont fessier unilatéral", series:3, reps:"12/jambe", repos:60, poids:true},
+      {name:"Rowing élastique lourd", series:4, reps:"10-12", repos:75, poids:false},
+      {name:"Développé épaules unilatéral", series:3, reps:"10/bras", repos:60, poids:true},
+      {name:"Gainage planche + levée de jambe", series:3, reps:"45 sec", repos:45, poids:false},
+      {name:"Tractions négatives (barre)", series:3, reps:"3-5", repos:120, poids:false},
+      {name:"Extensions dos + rotation (ballon de gym)", series:3, reps:"12", repos:45, poids:false},
+    ],
+  },
+  salle:{
+    debutante:[
+      {name:"Presse à cuisses (leg press)", series:3, reps:"12-15", repos:75, poids:true},
+      {name:"Leg extension", series:3, reps:"12-15", repos:60, poids:true},
+      {name:"Leg curl allongé/assis", series:3, reps:"12-15", repos:60, poids:true},
+      {name:"Tirage vertical poulie haute (prise large)", series:3, reps:"12", repos:75, poids:true},
+      {name:"Développé assis machine (poitrine)", series:3, reps:"12", repos:75, poids:true},
+      {name:"Rameur (échauffement / cardio léger)", series:1, reps:"5 min", repos:0, poids:false},
+      {name:"Gainage planche (au sol, tapis salle)", series:3, reps:"20-30 sec", repos:45, poids:false},
+    ],
+    intermediaire:[
+      {name:"Presse à cuisses (leg press)", series:4, reps:"10-12", repos:75, poids:true},
+      {name:"Rowing poulie basse (assis)", series:3, reps:"10-12", repos:75, poids:true},
+      {name:"Tirage vertical poulie haute (prise serrée)", series:3, reps:"10-12", repos:75, poids:true},
+      {name:"Développé assis machine (poitrine)", series:3, reps:"10-12", repos:75, poids:true},
+      {name:"Presse pectorale machine (pec deck)", series:3, reps:"12", repos:60, poids:true},
+      {name:"Adducteur / Abducteur (machine)", series:3, reps:"15/mvt", repos:45, poids:true},
+      {name:"Machine mollets debout", series:3, reps:"15-20", repos:45, poids:true},
+      {name:"Rameur (intervalles doux)", series:1, reps:"8-10 min", repos:0, poids:false},
+    ],
+    avancee:[
+      {name:"Presse à cuisses (leg press), charge élevée", series:4, reps:"8-10", repos:90, poids:true},
+      {name:"Rowing poulie basse (charge progressive)", series:4, reps:"8-10", repos:90, poids:true},
+      {name:"Tirage vertical poulie haute (super-set prise large/serrée)", series:3, reps:"10 + 10", repos:75, poids:true},
+      {name:"Développé assis machine (poitrine), charge élevée", series:4, reps:"8-10", repos:90, poids:true},
+      {name:"Leg curl + Leg extension (super-set)", series:3, reps:"12 + 12", repos:75, poids:true},
+      {name:"Adducteur / Abducteur (machine)", series:3, reps:"15/mvt", repos:45, poids:true},
+      {name:"Rameur (intervalles soutenus)", series:1, reps:"12-15 min", repos:0, poids:false},
+      {name:"Gainage planche + levée de jambe (tapis salle)", series:3, reps:"45 sec", repos:45, poids:false},
+    ],
+  },
 };
 
 /* ============================= BADGES ============================= */
@@ -664,6 +740,17 @@ const NUTRI_DB = {
   "Marrons (châtaignes)":{k:180,p:2,g:41,l:1.5},
   "Poudre de protéine végétale":{k:380,p:75,g:8,l:6},
   "Skyr":{k:63,p:11,g:4,l:0.2},
+  "Blancs d'œufs":{k:52,p:11,g:0.7,l:0.2},
+  "Pois cassés":{k:118,p:8.3,g:21,l:0.4,cru:true},
+  "Ricotta":{k:174,p:11,g:3,l:13},
+  "Granola maison":{k:450,p:11,g:60,l:18},
+  "Melon":{k:34,p:0.8,g:8,l:0.2},
+  "Maïs":{k:96,p:3.4,g:19,l:1.5},
+  "Salade verte":{k:15,p:1.4,g:2.9,l:0.2},
+  "Fruits rouges":{k:43,p:0.9,g:9,l:0.4},
+  "Gaufre maison":{k:280,p:8,g:38,l:10},
+  "Steak de haricots":{k:180,p:12,g:20,l:6},
+  "Biscuits cuillère":{k:380,p:7,g:75,l:5},
 };
 function macrosOf(name, grams, cruMultiplier){
   const d = NUTRI_DB[name];
@@ -681,133 +768,230 @@ function sumMacros(list){
 
 
 /* ============================= NUTRITION : GENERATION DES REPAS ============================= */
+// Menus repris et adaptés du planner personnel d'Aurore (2 menus alternés par saison, 4 repas/jour).
 const SEASON_LABEL = {hiver:'Hiver', printemps:'Printemps', ete:'Été', automne:'Automne'};
-const SEASON_FRUITS = {
-  hiver:['Orange','Clémentine','Pomme'],
-  printemps:['Fraises','Pomme','Poire'],
-  ete:['Pêche','Abricot','Raisin'],
-  automne:['Pomme','Poire','Raisin'],
-};
 let RECIPES = [];
-function addRecipe(r){ r.id = r.id || uid(); r.macros = sumMacros(r.ingredients); RECIPES.push(r); }
-
-// --- Petit-déjeuner : 5 gabarits x fruit de saison ---
-Object.keys(SEASON_FRUITS).forEach(season=>{
-  SEASON_FRUITS[season].forEach((fruit,i)=>{
-    addRecipe({slot:'petitdej', seasons:[season], name:`Porridge avoine, ${fruit.toLowerCase()} & amandes`,
-      ingredients:[{name:"Flocons d'avoine",grams:50},{name:"Lait végétal (soja)",grams:180},{name:fruit,grams:100},{name:"Amandes",grams:15},{name:"Miel",grams:8}],
-      recette:"Faire chauffer le lait végétal, ajouter les flocons d'avoine et cuire 5 min à feu doux en remuant. Verser dans un bol, garnir du fruit coupé, des amandes concassées et du miel.",
-      variante:"Remplacer les amandes par des graines de courge, ou le lait végétal par du lait demi-écrémé." });
-    addRecipe({slot:'petitdej', seasons:[season], name:`Yaourt grec, miel & ${fruit.toLowerCase()}`,
-      ingredients:[{name:"Yaourt grec",grams:150},{name:fruit,grams:100},{name:"Miel",grams:10},{name:"Graines de courge",grams:10},{name:"Noix",grams:10}],
-      recette:"Mélanger le yaourt grec avec le miel, ajouter le fruit coupé en morceaux, parsemer de graines de courge et de noix concassées.",
-      variante:"Remplacer le yaourt grec par du fromage blanc pour une version plus légère." });
-  });
-});
-addRecipe({slot:'petitdej', seasons:['hiver','automne'], name:"Tartines pain complet, beurre de cacahuète & pomme",
-  ingredients:[{name:"Pain complet",grams:70},{name:"Beurre de cacahuète",grams:20},{name:"Pomme",grams:120}],
-  recette:"Griller le pain, tartiner de beurre de cacahuète, accompagner de quartiers de pomme.",
-  variante:"Ajouter un filet de miel, ou remplacer la pomme par une poire." });
-addRecipe({slot:'petitdej', seasons:['printemps','ete'], name:"Œufs brouillés, pain de campagne & fruit de saison",
-  ingredients:[{name:"Œufs",grams:110},{name:"Pain de campagne",grams:60},{name:"Fraises",grams:100},{name:"Huile d'olive",grams:5}],
-  recette:"Battre les œufs, cuire à la poêle à feu doux en remuant délicatement. Servir avec le pain de campagne grillé et le fruit.",
-  variante:"Ajouter des herbes fraîches (ciboulette, persil) dans les œufs." });
-addRecipe({slot:'petitdej', seasons:['hiver','printemps','ete','automne'], name:"Fromage blanc, noix & fruit de saison",
-  ingredients:[{name:"Fromage blanc",grams:150},{name:"Noix",grams:15},{name:"Pomme",grams:100},{name:"Miel",grams:8}],
-  recette:"Mélanger le fromage blanc et le miel, ajouter le fruit coupé et les noix concassées.",
-  variante:"Saupoudrer de cacao non sucré pour une version gourmande." });
-
-// --- Collations : fruit + protéine légère ---
-Object.keys(SEASON_FRUITS).forEach(season=>{
-  SEASON_FRUITS[season].forEach(fruit=>{
-    addRecipe({slot:'collation', seasons:[season], name:`${fruit} & amandes`,
-      ingredients:[{name:fruit,grams:120},{name:"Amandes",grams:20}],
-      recette:"Simplement le fruit et une poignée d'amandes.", variante:"Remplacer les amandes par des noix ou des graines de courge." });
-  });
-});
-addRecipe({slot:'collation', seasons:['hiver','printemps','ete','automne'], name:"Yaourt & carré de chocolat noir",
-  ingredients:[{name:"Yaourt nature",grams:125},{name:"Chocolat noir 70%",grams:15}],
-  recette:"Déguster le yaourt nature avec le carré de chocolat noir.", variante:"Ajouter une cuillère de miel." });
-addRecipe({slot:'collation', seasons:['hiver','printemps','ete','automne'], name:"Houmous & bâtonnets de légumes",
-  ingredients:[{name:"Houmous",grams:60},{name:"Carotte",grams:80},{name:"Radis",grams:40}],
-  recette:"Couper les légumes en bâtonnets, tremper dans le houmous.", variante:"Ajouter des bâtonnets de poivron en été." });
-addRecipe({slot:'collation', seasons:['automne','hiver'], name:"Compote & châtaignes",
-  ingredients:[{name:"Compote sans sucre",grams:100},{name:"Marrons (châtaignes)",grams:60}],
-  recette:"Servir la compote accompagnée de châtaignes cuites.", variante:"Ajouter une pincée de cacao non sucré dans la compote." });
-
-// --- Déjeuner / Dîner : plats de saison ---
-function addMainPair(base){
-  addRecipe(Object.assign({slot:'dejeuner'}, base));
-  addRecipe(Object.assign({slot:'diner'}, JSON.parse(JSON.stringify(base)), {name:base.name+" (portion dîner)"}));
+function addRecipe(r){
+  r.id = r.id || uid();
+  // Les macros du planner d'origine sont conservées telles quelles (kcal/prot/gluc/lip) —
+  // elles sont ensuite mises à l'échelle du profil (poids/taille) au moment de générer le menu du jour.
+  RECIPES.push(r);
 }
-// HIVER
-addMainPair({seasons:['hiver'], name:"Velouté de potimarron & lentilles corail, pain de campagne",
-  ingredients:[{name:"Potimarron",grams:300},{name:"Lentilles corail",grams:60},{name:"Oignon",grams:40},{name:"Huile d'olive",grams:10},{name:"Pain de campagne",grams:60},{name:"Comté",grams:20}],
-  recette:"Faire suer l'oignon dans l'huile, ajouter le potimarron coupé et les lentilles, couvrir d'eau, cuire 25 min puis mixer. Servir avec le pain et le comté râpé.",
-  variante:"Remplacer le potimarron par de la courge butternut." });
-addMainPair({seasons:['hiver'], name:"Poêlée de poireaux, pois chiches & riz complet",
-  ingredients:[{name:"Poireau",grams:200},{name:"Pois chiches",grams:150},{name:"Riz complet",grams:70},{name:"Huile d'olive",grams:10},{name:"Parmesan",grams:15}],
-  recette:"Cuire le riz complet. Faire revenir les poireaux émincés à l'huile d'olive, ajouter les pois chiches, laisser mijoter 10 min. Servir sur le riz avec le parmesan râpé.",
-  variante:"Ajouter du chou kale poêlé pour plus de verdure." });
-addMainPair({seasons:['hiver'], name:"Gratin de chou-fleur, tofu fumé & pomme de terre",
-  ingredients:[{name:"Chou-fleur",grams:250},{name:"Pomme de terre",grams:200},{name:"Tofu fumé",grams:100},{name:"Crème fraîche légère",grams:60},{name:"Comté",grams:30}],
-  recette:"Cuire le chou-fleur et les pommes de terre à la vapeur, disposer dans un plat avec le tofu fumé émietté, napper de crème, couvrir de comté et gratiner 20 min au four à 200°C.",
-  variante:"Ajouter des épinards entre les couches." });
-// PRINTEMPS
-addMainPair({seasons:['printemps'], name:"Risotto printanier petits pois, asperges & parmesan",
-  ingredients:[{name:"Riz basmati",grams:70},{name:"Petits pois",grams:120},{name:"Asperges",grams:150},{name:"Parmesan",grams:20},{name:"Huile d'olive",grams:10},{name:"Oignon",grams:30}],
-  recette:"Faire suer l'oignon, ajouter le riz et nacrer, mouiller progressivement avec du bouillon chaud en remuant 18 min. En fin de cuisson, ajouter petits pois et asperges blanchies, puis le parmesan.",
-  variante:"Ajouter des fèves fraîches écossées." });
-addMainPair({seasons:['printemps'], name:"Salade tiède de quinoa, fèves, radis & feta",
-  ingredients:[{name:"Quinoa",grams:70},{name:"Fèves",grams:100},{name:"Radis",grams:60},{name:"Feta",grams:50},{name:"Huile d'olive",grams:10},{name:"Citron",grams:20}],
-  recette:"Cuire le quinoa, laisser tiédir. Mélanger avec les fèves cuites, les radis émincés, la feta émiettée, l'huile d'olive et le jus de citron.",
-  variante:"Ajouter des herbes fraîches (basilic, persil)." });
-addMainPair({seasons:['printemps'], name:"Œufs pochés, asperges rôties & pain de campagne",
-  ingredients:[{name:"Œufs",grams:110},{name:"Asperges",grams:180},{name:"Pain de campagne",grams:60},{name:"Huile d'olive",grams:8},{name:"Parmesan",grams:15}],
-  recette:"Rôtir les asperges à l'huile d'olive 12 min au four. Pocher les œufs 3 min dans l'eau frémissante vinaigrée. Servir ensemble avec pain grillé et copeaux de parmesan.",
-  variante:"Remplacer les œufs pochés par des œufs mollets." });
-// ETE
-addMainPair({seasons:['ete'], name:"Salade de tomates, mozzarella & basilic, boulgour",
-  ingredients:[{name:"Tomate",grams:200},{name:"Mozzarella",grams:100},{name:"Basilic",grams:5},{name:"Boulgour",grams:60},{name:"Huile d'olive",grams:10}],
-  recette:"Cuire le boulgour. Couper les tomates et la mozzarella, arranger avec le basilic frais, arroser d'huile d'olive. Servir avec le boulgour.",
-  variante:"Ajouter des olives ou du poivron grillé." });
-addMainPair({seasons:['ete'], name:"Poêlée de courgettes, poivrons & pois chiches, semoule",
-  ingredients:[{name:"Courgette",grams:200},{name:"Poivron",grams:120},{name:"Pois chiches",grams:150},{name:"Semoule",grams:60},{name:"Huile d'olive",grams:10}],
-  recette:"Cuire la semoule à l'eau bouillante. Faire revenir courgettes et poivrons en dés à l'huile, ajouter les pois chiches, épicer et servir sur la semoule.",
-  variante:"Remplacer la semoule par du boulgour." });
-addMainPair({seasons:['ete'], name:"Taboulé de quinoa, haricots verts & feta, pêche grillée",
-  ingredients:[{name:"Quinoa",grams:70},{name:"Haricots verts",grams:120},{name:"Feta",grams:50},{name:"Pêche",grams:100},{name:"Citron",grams:15},{name:"Huile d'olive",grams:10}],
-  recette:"Cuire le quinoa et les haricots verts. Mélanger avec la feta émiettée, l'huile et le citron. Servir avec la pêche grillée quelques minutes à la poêle.",
-  variante:"Ajouter de la menthe fraîche." });
-// AUTOMNE
-addMainPair({seasons:['automne'], name:"Curry de courge butternut, pois chiches & riz basmati",
-  ingredients:[{name:"Courge butternut",grams:250},{name:"Pois chiches",grams:150},{name:"Riz basmati",grams:70},{name:"Lait végétal (soja)",grams:100},{name:"Oignon",grams:40},{name:"Huile d'olive",grams:10}],
-  recette:"Faire revenir l'oignon, ajouter la courge en dés, les pois chiches, le lait végétal et les épices (curry, curcuma). Laisser mijoter 20 min. Servir sur le riz basmati.",
-  variante:"Ajouter des épinards en fin de cuisson." });
-addMainPair({seasons:['automne'], name:"Poêlée de champignons, châtaignes & sarrasin",
-  ingredients:[{name:"Champignons de Paris",grams:200},{name:"Marrons (châtaignes)",grams:80},{name:"Sarrasin (kasha)",grams:60},{name:"Huile d'olive",grams:10},{name:"Persil",grams:5}],
-  recette:"Cuire le sarrasin. Faire revenir les champignons émincés à l'huile, ajouter les châtaignes concassées, persiller. Servir sur le sarrasin.",
-  variante:"Ajouter un trait de crème fraîche légère." });
-addMainPair({seasons:['automne'], name:"Gratin de patate douce, épinards & chèvre",
-  ingredients:[{name:"Patate douce",grams:250},{name:"Épinards",grams:150},{name:"Chèvre frais",grams:60},{name:"Crème fraîche légère",grams:40}],
-  recette:"Cuire la patate douce en tranches à la vapeur, disposer avec les épinards fanés, napper de crème et de chèvre émietté, gratiner 20 min à 200°C.",
-  variante:"Ajouter des noix concassées sur le dessus avant cuisson." });
+function R(season, menu, slot, name, ingredients, macros, recette, variante){
+  addRecipe({ season, menu, slot, name, ingredients, macros, recette, variante });
+}
+
+// ===== AUTOMNE (septembre à novembre) =====
+R('automne','A','petitdej',"Gaufres protéinées pomme",
+  [{name:"Œufs",grams:50},{name:"Skyr",grams:150},{name:"Flocons d'avoine",grams:40},{name:"Pomme",grams:100}],
+  {k:390,p:29,g:50,l:9},
+  "Mixer l'œuf, le skyr et l'avoine, cuire au gaufrier. Servir avec la pomme en quartiers.",
+  "Variante fruit : 100 g de fraises ou de fruits rouges à la place de la pomme.");
+R('automne','A','dejeuner',"Chili haricots rouges riz",
+  [{name:"Haricots rouges",grams:180},{name:"Riz complet",grams:100},{name:"Tomate",grams:100},{name:"Poivron",grams:80},{name:"Comté",grams:20}],
+  {k:480,p:24,g:70,l:11},
+  "Faire mijoter les haricots rouges avec la tomate et le poivron en dés, épicer (cumin, paprika). Servir sur le riz cuit avec le fromage râpé.",
+  "Pimenter davantage ou ajouter du maïs.");
+R('automne','A','collation',"Tiramisu rapide léger",
+  [{name:"Skyr",grams:150},{name:"Biscuits cuillère",grams:20},{name:"Cacao non sucré",grams:5}],
+  {k:210,p:18,g:28,l:3},
+  "Tremper rapidement les biscuits dans un café léger, alterner avec le skyr en verrine, saupoudrer de cacao.",
+  "Ajouter un carré de chocolat noir râpé.");
+R('automne','A','diner',"Omelette champignons épinards",
+  [{name:"Œufs",grams:110},{name:"Blancs d'œufs",grams:150},{name:"Champignons de Paris",grams:200},{name:"Épinards",grams:150},{name:"Pain complet",grams:60}],
+  {k:500,p:40,g:48,l:17},
+  "Faire revenir les champignons puis les épinards, ajouter les œufs battus avec les blancs, cuire en omelette. Servir avec le pain.",
+  "Ajouter un peu de fromage râpé sur le dessus.");
+
+R('automne','B','petitdej',"Skyr avoine pomme cannelle",
+  [{name:"Skyr",grams:250},{name:"Flocons d'avoine",grams:35},{name:"Pomme",grams:120},{name:"Noix",grams:10}],
+  {k:390,p:31,g:49,l:9},
+  "Mélanger le skyr et l'avoine, laisser gonfler quelques minutes, ajouter la pomme en dés, les noix et une pincée de cannelle.",
+  "Variante fruit : fraises ou fruits rouges à la place de la pomme.");
+R('automne','B','dejeuner',"Bowl lentilles courge feta",
+  [{name:"Lentilles vertes",grams:160},{name:"Courge butternut",grams:220},{name:"Feta",grams:40},{name:"Quinoa",grams:80}],
+  {k:470,p:25,g:62,l:14},
+  "Cuire la courge au four en dés, cuire le quinoa et les lentilles, assembler en bowl avec la feta émiettée.",
+  "Ajouter un filet d'huile d'olive et des herbes fraîches.");
+R('automne','B','collation',"Skyr + chocolat noir",
+  [{name:"Skyr",grams:170},{name:"Chocolat noir 70%",grams:15},{name:"Pomme",grams:120}],
+  {k:220,p:19,g:24,l:7},
+  "Servir le skyr avec le chocolat noir râpé et la pomme en quartiers.",
+  "Remplacer la pomme par 100 g de fraises ou de fruits rouges.");
+R('automne','B','diner',"Tofu poêlé brocoli pommes de terre",
+  [{name:"Tofu",grams:180},{name:"Brocoli",grams:250},{name:"Pomme de terre",grams:220}],
+  {k:510,p:38,g:55,l:18},
+  "Cuire les pommes de terre à la vapeur, poêler le tofu coupé en cubes avec le brocoli, sauce soja légère.",
+  "Ajouter une sauce cacahuète légère.");
+
+// ===== HIVER (décembre à février) =====
+R('hiver','A','petitdej',"Tartines œufs & pomme",
+  [{name:"Œufs",grams:110},{name:"Pain complet",grams:60},{name:"Pomme",grams:100},{name:"Skyr",grams:100}],
+  {k:410,p:29,g:43,l:14},
+  "Cuire les œufs au plat ou brouillés, servir avec le pain complet grillé, la pomme et le skyr à côté.",
+  "Variante fruit : 100 g de fraises ou de fruits rouges.");
+R('hiver','A','dejeuner',"Gratin chou-fleur pois chiches",
+  [{name:"Pois chiches",grams:180},{name:"Chou-fleur",grams:250},{name:"Skyr",grams:100},{name:"Comté",grams:25}],
+  {k:490,p:30,g:54,l:17},
+  "Cuire le chou-fleur à la vapeur, mélanger avec les pois chiches et le skyr, couvrir de fromage et gratiner 15 min au four.",
+  "Ajouter du curcuma et du cumin.");
+R('hiver','A','collation',"Chocolat + fromage blanc",
+  [{name:"Fromage blanc",grams:200},{name:"Chocolat noir 70%",grams:15}],
+  {k:210,p:20,g:17,l:7},
+  "Servir le fromage blanc avec le chocolat noir râpé dessus.",
+  "Ajouter une cuillère de miel.");
+R('hiver','A','diner',"Soupe pois cassés + œufs",
+  [{name:"Pois cassés",grams:120},{name:"Carotte",grams:100},{name:"Épinards",grams:80},{name:"Œufs",grams:110},{name:"Pain complet",grams:50}],
+  {k:500,p:32,g:55,l:17},
+  "Cuire les pois cassés avec la carotte en soupe mixée, ajouter les épinards en fin de cuisson. Servir avec un œuf mollet et le pain.",
+  "Ajouter un trait de crème fraîche légère.");
+
+R('hiver','B','petitdej',"Porridge skyr banane cacao",
+  [{name:"Skyr",grams:250},{name:"Flocons d'avoine",grams:35},{name:"Banane",grams:100},{name:"Cacao non sucré",grams:5}],
+  {k:400,p:31,g:55,l:7},
+  "Mélanger le skyr, l'avoine et le cacao, ajouter la banane écrasée ou en rondelles.",
+  "Variante fruit : pomme ou fruits rouges à la place de la banane.");
+R('hiver','B','dejeuner',"Dahl corail carotte épinards",
+  [{name:"Lentilles corail",grams:80},{name:"Carotte",grams:120},{name:"Épinards",grams:100},{name:"Riz basmati",grams:80}],
+  {k:480,p:27,g:75,l:8},
+  "Cuire les lentilles corail avec la carotte en dés et les épices (curry, curcuma), ajouter les épinards en fin de cuisson. Servir sur le riz.",
+  "Ajouter du lait de coco léger.");
+R('hiver','B','collation',"Skyr pomme amandes",
+  [{name:"Skyr",grams:170},{name:"Pomme",grams:150},{name:"Amandes",grams:10}],
+  {k:210,p:19,g:24,l:6},
+  "Servir le skyr avec la pomme coupée et les amandes concassées.",
+  "Variante fruit : 120 g de fraises ou de fruits rouges.");
+R('hiver','B','diner',"Tempeh pommes pommes de terre",
+  [{name:"Tempeh",grams:130},{name:"Pomme",grams:250},{name:"Pomme de terre",grams:200}],
+  {k:520,p:34,g:58,l:20},
+  "Poêler le tempeh coupé en tranches, cuire les pommes de terre vapeur, poêler la pomme coupée en quartiers avec un peu de cannelle pour un plat sucré-salé.",
+  "Ajouter une touche de moutarde à l'ancienne sur le tempeh.");
+
+// ===== PRINTEMPS (mars à mai) =====
+R('printemps','A','petitdej',"Gaufres skyr fraises",
+  [{name:"Œufs",grams:50},{name:"Skyr",grams:150},{name:"Flocons d'avoine",grams:40},{name:"Fraises",grams:100}],
+  {k:370,p:29,g:42,l:9},
+  "Mixer l'œuf, le skyr et l'avoine, cuire au gaufrier. Servir avec les fraises.",
+  "Variante fruit : pomme ou fruits rouges à la place des fraises.");
+R('printemps','A','dejeuner',"Pâtes complètes petits pois ricotta",
+  [{name:"Pâtes complètes",grams:70},{name:"Petits pois",grams:150},{name:"Ricotta",grams:60}],
+  {k:490,p:29,g:69,l:12},
+  "Cuire les pâtes complètes, réchauffer les petits pois, mélanger avec la ricotta et un tour de poivre.",
+  "Ajouter du parmesan et du basilic frais.");
+R('printemps','A','collation',"Tiramisu rapide fraise",
+  [{name:"Skyr",grams:150},{name:"Fraises",grams:100},{name:"Biscuits cuillère",grams:20}],
+  {k:220,p:18,g:32,l:3},
+  "Alterner en verrine le skyr et les fraises écrasées avec les biscuits légèrement imbibés.",
+  "Variante fruit : pomme ou fruits rouges.");
+R('printemps','A','diner',"Frittata épinards pommes de terre",
+  [{name:"Œufs",grams:110},{name:"Blancs d'œufs",grams:100},{name:"Épinards",grams:150},{name:"Pomme de terre",grams:200}],
+  {k:490,p:38,g:45,l:17},
+  "Cuire les pommes de terre en fines tranches à la poêle, ajouter les épinards puis les œufs battus, cuire à couvert puis finir au four.",
+  "Ajouter un peu de fromage de chèvre frais.");
+
+R('printemps','B','petitdej',"Skyr fraises avoine",
+  [{name:"Skyr",grams:250},{name:"Fraises",grams:150},{name:"Flocons d'avoine",grams:40},{name:"Graines de courge",grams:10}],
+  {k:390,p:32,g:45,l:9},
+  "Mélanger le skyr et l'avoine, ajouter les fraises coupées et les graines de courge.",
+  "Variante fruit : pomme ou fruits rouges.");
+R('printemps','B','dejeuner',"Quinoa pois chiches asperges",
+  [{name:"Pois chiches",grams:150},{name:"Quinoa",grams:100},{name:"Asperges",grams:180},{name:"Feta",grams:30}],
+  {k:470,p:25,g:60,l:14},
+  "Cuire le quinoa, blanchir les asperges, mélanger avec les pois chiches et la feta émiettée.",
+  "Ajouter un filet d'huile d'olive et du citron.");
+R('printemps','B','collation',"Skyr fraises chocolat",
+  [{name:"Skyr",grams:170},{name:"Fraises",grams:100},{name:"Chocolat noir 70%",grams:12}],
+  {k:200,p:19,g:20,l:6},
+  "Servir le skyr avec les fraises et le chocolat noir râpé.",
+  "Variante fruit : pomme ou fruits rouges.");
+R('printemps','B','diner',"Tofu courgette semoule",
+  [{name:"Tofu",grams:180},{name:"Courgette",grams:250},{name:"Semoule",grams:100}],
+  {k:500,p:37,g:50,l:18},
+  "Cuire la semoule, poêler le tofu en cubes avec la courgette en rondelles, assaisonner d'épices douces.",
+  "Ajouter des herbes fraîches (menthe, persil).");
+
+// ===== ÉTÉ (juin à août) =====
+R('ete','A','petitdej',"Skyr pêche granola maison",
+  [{name:"Skyr",grams:250},{name:"Pêche",grams:150},{name:"Granola maison",grams:35}],
+  {k:390,p:31,g:52,l:7},
+  "Griller légèrement la pêche coupée en quartiers, servir sur le skyr avec le granola maison (avoine, amandes torréfiées).",
+  "Variante fruit : pomme ou fruits rouges.");
+R('ete','A','dejeuner',"Salade lentilles tomate poivron feta",
+  [{name:"Lentilles vertes",grams:170},{name:"Tomate",grams:150},{name:"Poivron",grams:100},{name:"Feta",grams:40},{name:"Pain complet",grams:50}],
+  {k:470,p:27,g:58,l:14},
+  "Mélanger les lentilles cuites avec la tomate et le poivron en dés, la feta émiettée, un filet d'huile d'olive. Servir avec le pain.",
+  "Ajouter des olives et du basilic.");
+R('ete','A','collation',"Skyr melon chocolat",
+  [{name:"Skyr",grams:170},{name:"Melon",grams:180},{name:"Chocolat noir 70%",grams:12}],
+  {k:210,p:19,g:27,l:5},
+  "Servir le skyr avec le melon en billes et le chocolat noir râpé.",
+  "Variante fruit : pomme ou fraises.");
+R('ete','A','diner',"Frites au four + burger haricots",
+  [{name:"Pomme de terre",grams:250},{name:"Steak de haricots",grams:120},{name:"Tomate",grams:100},{name:"Salade verte",grams:60}],
+  {k:520,p:30,g:72,l:13},
+  "Couper les pommes de terre en frites, cuire au four. Cuire le steak de haricots à la poêle, servir avec la salade de tomate.",
+  "Faire le steak de haricots maison : haricots rouges écrasés, chapelure, épices, façonnés et poêlés.");
+
+R('ete','B','petitdej',"Overnight oats fruits rouges",
+  [{name:"Skyr",grams:220},{name:"Flocons d'avoine",grams:40},{name:"Fruits rouges",grams:120}],
+  {k:380,p:29,g:49,l:7},
+  "Mélanger le skyr et l'avoine la veille au soir, réserver au frais. Ajouter les fruits rouges au moment de servir.",
+  "Variante fruit : pomme ou fraises.");
+R('ete','B','dejeuner',"Bowl tofu maïs courgette riz",
+  [{name:"Tofu",grams:180},{name:"Maïs",grams:80},{name:"Courgette",grams:150},{name:"Riz basmati",grams:100}],
+  {k:500,p:36,g:58,l:17},
+  "Cuire le riz, poêler le tofu en cubes avec la courgette et le maïs, assembler en bowl.",
+  "Ajouter une sauce soja-citron.");
+R('ete','B','collation',"Gaufre légère + skyr",
+  [{name:"Gaufre maison",grams:60},{name:"Skyr",grams:120},{name:"Fruits rouges",grams:100}],
+  {k:220,p:17,g:31,l:4},
+  "Servir la petite gaufre maison tiède avec le skyr et les fruits rouges.",
+  "Variante fruit : pomme ou fraises.");
+R('ete','B','diner',"Omelette tomate courgette + pain",
+  [{name:"Œufs",grams:110},{name:"Blancs d'œufs",grams:100},{name:"Tomate",grams:120},{name:"Courgette",grams:150},{name:"Pain complet",grams:60}],
+  {k:490,p:39,g:43,l:17},
+  "Poêler la tomate et la courgette en dés, ajouter les œufs battus avec les blancs, cuire en omelette. Servir avec le pain.",
+  "Ajouter du basilic frais.");
 
 function isForbidden(recipe, forbidden){
   const banned = (forbidden.banned||[]).map(s=>s.toLowerCase());
   return recipe.ingredients.some(ing=> banned.some(b=> ing.name.toLowerCase().includes(b)));
 }
 function recipesFor(slot, season, forbidden){
-  return RECIPES.filter(r=> r.slot===slot && r.seasons.includes(season) && !isForbidden(r, forbidden));
+  return RECIPES.filter(r=> r.slot===slot && r.season===season && !isForbidden(r, forbidden));
 }
+function pickMenuRecipe(slot, season, menuKey, forbidden){
+  let r = RECIPES.find(x=>x.slot===slot && x.season===season && x.menu===menuKey);
+  if(r && !isForbidden(r, forbidden)) return r;
+  const other = menuKey==='A' ? 'B' : 'A';
+  let r2 = RECIPES.find(x=>x.slot===slot && x.season===season && x.menu===other);
+  if(r2 && !isForbidden(r2, forbidden)) return r2;
+  return RECIPES.find(x=>x.slot===slot && !isForbidden(x, forbidden)) || null;
+}
+
+/* ----- Mise à l'échelle du profil : les repas sont ceux du planner d'origine (83,5 kg / 173 cm),
+   proportionnellement ajustés aux besoins réels calculés à partir du poids/taille du profil actif. ----- */
+const REFERENCE_PROFILE = { sexe:'Femme', age:32, taille:173, poids:83.5 };
+function nearest5(n){ return Math.round(n/5)*5; }
+function scaleRecipe(recipe, ratio){
+  if(Math.abs(ratio-1) < 0.02) return recipe; // pas de distorsion inutile si proche de la référence
+  const ingredients = recipe.ingredients.map(i=>({ name:i.name, grams: Math.max(5, nearest5(i.grams*ratio)) }));
+  const macros = { k:round1(recipe.macros.k*ratio), p:round1(recipe.macros.p*ratio), g:round1(recipe.macros.g*ratio), l:round1(recipe.macros.l*ratio) };
+  return Object.assign({}, recipe, { ingredients, macros, scaled:true });
+}
+function profileScaleRatio(profile){
+  return bmr(profile) / bmr(REFERENCE_PROFILE);
+}
+
 function menuForDate(dateStr, forbidden){
   const season = seasonOf(dateStr);
+  const menuKey = dayOfYear(dateStr) % 2 === 0 ? 'A' : 'B';
   const slots = ['petitdej','dejeuner','collation','diner'];
+  const ratio = profileScaleRatio(STATE.profile);
   const out = {};
   slots.forEach(slot=>{
-    let pool = recipesFor(slot, season, forbidden);
-    if(!pool.length) pool = RECIPES.filter(r=>r.slot===slot && !isForbidden(r, forbidden));
-    out[slot] = pickDeterministic(pool, dateStr+slot) || null;
+    const r = pickMenuRecipe(slot, season, menuKey, forbidden);
+    out[slot] = r ? scaleRecipe(r, ratio) : null;
   });
   return out;
 }
@@ -825,6 +1009,10 @@ const RAYON_MAP = {
   "Fromage blanc":"Crémerie & œufs","Œufs":"Crémerie & œufs","Parmesan":"Crémerie & œufs","Feta":"Crémerie & œufs","Mozzarella":"Crémerie & œufs",
   "Chèvre frais":"Crémerie & œufs","Comté":"Crémerie & œufs","Crème fraîche légère":"Crémerie & œufs","Tofu":"Crémerie & œufs","Tofu fumé":"Crémerie & œufs","Tempeh":"Crémerie & œufs","Skyr":"Crémerie & œufs",
   "Poudre de protéine végétale":"Épicerie",
+  "Pois cassés":"Épicerie","Granola maison":"Épicerie","Biscuits cuillère":"Épicerie","Gaufre maison":"Boulangerie",
+  "Ricotta":"Crémerie & œufs","Blancs d'œufs":"Crémerie & œufs",
+  "Melon":"Fruits & légumes","Maïs":"Fruits & légumes","Salade verte":"Fruits & légumes","Fruits rouges":"Fruits & légumes",
+  "Steak de haricots":"Épicerie",
 };
 function rayonOf(name){ return RAYON_MAP[name] || "Fruits & légumes"; }
 
@@ -843,7 +1031,7 @@ function defaultState(){
     stepsLog:[],
     sessionsLog:[], // type: marche, course, tapis, spinning, elliptique, corde, tractions, renforcement, pilates, autre
     pullup:{ stage:1, log:[] },
-    strengthLevel:'debutante', strengthLog:[],
+    strengthLevel:'debutante', strengthLocation:'maison', strengthLog:[],
     pilatesLibrary:[
       {id:uid(), name:"Pilates débutante - dos & posture", url:"https://www.youtube.com/results?search_query=pilates+debutante+dos", duree:20, niveau:'Débutante', objectif:'Posture', categorie:'Pilates', date:null, done:false},
       {id:uid(), name:"Pilates doux - mobilité hanches", url:"https://www.youtube.com/results?search_query=pilates+mobilite+hanches", duree:15, niveau:'Débutante', objectif:'Mobilité', categorie:'Pilates', date:null, done:false},
@@ -890,11 +1078,19 @@ function calorieTarget(profile){
 function proteinTarget(profile){
   return Math.max(PROTEIN_MIN, Math.round(profile.poids * 1.6));
 }
-function stepsGoalFor(dateStr){
-  const w = Math.max(0, weekIndexSince(STATE.profile.dateDebut, dateStr));
-  const goal = STATE.profile.pasBase + Math.min(w, 40) * 150; // progression douce, plafond ~8000 après ~40 semaines
-  return clamp(Math.round(goal/100)*100, STATE.profile.pasBase, 8500);
+function monthsSinceStart(dateStr){
+  const d = parseISO(dateStr), s = parseISO(APP_START_DATE);
+  return Math.max(0, (d.getFullYear()-s.getFullYear())*12 + (d.getMonth()-s.getMonth()));
 }
+function stepsGoalFor(dateStr){
+  // Progression douce en palier mensuel (+500 pas/mois), telle que suivie dans le planner :
+  // sept 2500-3000 → nov 3500-4000 → jan 4500-5000 → mars 5500-6000 → juin 7000-7500 (puis plateau)
+  const months = Math.min(monthsSinceStart(dateStr), 9);
+  const min = 2500 + 500*months;
+  const max = min + 500;
+  return { min, max };
+}
+function stepsGoalLabel(dateStr){ const g = stepsGoalFor(dateStr); return `${g.min}–${g.max}`; }
 
 /* ============================= NAVIGATION / SHELL ============================= */
 const ICONS = {
@@ -976,7 +1172,7 @@ const WEEKLY_TEMPLATE = {
 const ACTIVITY_LABEL = {
   marche:'Marche', course:'Course', tapis:'Tapis Domyos', spinning:'Spinning', elliptique:'Elliptique',
   cardio:'Cardio (spinning/elliptique)', corde:'Corde à sauter', tractions:'Tractions', renforcement:'Renforcement',
-  pilates:'Pilates', repos:'Repos', autre:'Activité libre',
+  boxe:'Boxe / MMA (sac de frappe)', pilates:'Pilates', repos:'Repos', autre:'Activité libre',
 };
 function plannedForDate(dateStr){
   if(STATE.calendarOverrides && STATE.calendarOverrides[dateStr]) return STATE.calendarOverrides[dateStr];
@@ -1007,7 +1203,7 @@ function renderDashboard(){
     if(menu[slot]){ acc.k+=menu[slot].macros.k; acc.p+=menu[slot].macros.p; } return acc;
   },{k:0,p:0});
   const todaySteps = STATE.stepsLog.filter(s=>s.date===today).reduce((a,s)=>a+s.steps,0);
-  const stepsGoal = stepsGoalFor(today);
+  const stepsGoal = stepsGoalFor(today); const stepsGoalMid = (stepsGoal.min+stepsGoal.max)/2;
   const planned = plannedForDate(today);
   const done = doneTypesForDate(today);
   const runWeek = currentRunWeek(today);
@@ -1039,9 +1235,9 @@ function renderDashboard(){
   <div class="section">
     <div class="section-title"><h2>Pas</h2><button class="link-btn" data-nav="sport" data-sub="pas">Détail →</button></div>
     <div class="card">
-      <div class="row between"><div><div class="tile-val num">${todaySteps.toLocaleString('fr-FR')}</div><div class="tile-sub">objectif du jour : ${stepsGoal.toLocaleString('fr-FR')} pas</div></div>
+      <div class="row between"><div><div class="tile-val num">${todaySteps.toLocaleString('fr-FR')}</div><div class="tile-sub">objectif du jour : ${stepsGoal.min.toLocaleString('fr-FR')}–${stepsGoal.max.toLocaleString('fr-FR')} pas</div></div>
       <button class="btn primary sm" data-action="quick-steps">+ Ajouter</button></div>
-      <div class="progress-bar" style="margin-top:10px;"><div style="width:${clamp(todaySteps/stepsGoal*100,0,100)}%"></div></div>
+      <div class="progress-bar" style="margin-top:10px;"><div style="width:${clamp(todaySteps/stepsGoalMid*100,0,100)}%"></div></div>
     </div>
   </div>
 
@@ -1257,7 +1453,7 @@ function sessionsThisWeek(){
 
 /* ============================= SPORT (screen) ============================= */
 function renderSport(){
-  const subtabs = [['course','🏃 Course'],['pas','🚶 Pas'],['cardio','🚴 Cardio'],['corde','🪢 Corde'],['tractions','💪 Tractions'],['renforcement','🏋️ Renfo'],['pilates','🧘 Pilates'],['libre','🔄 Libre']];
+  const subtabs = [['course','🏃 Course'],['pas','🚶 Pas'],['cardio','🚴 Cardio'],['corde','🪢 Corde'],['tractions','💪 Tractions'],['renforcement','🏋️ Renfo'],['boxe','🥊 Boxe'],['pilates','🧘 Pilates'],['libre','🔄 Libre']];
   let body='';
   switch(UI.sportSub){
     case 'course': body = renderSportCourse(); break;
@@ -1266,6 +1462,7 @@ function renderSport(){
     case 'corde': body = renderSportCorde(); break;
     case 'tractions': body = renderSportTractions(); break;
     case 'renforcement': body = renderSportRenfo(); break;
+    case 'boxe': body = renderSportBoxe(); break;
     case 'pilates': body = renderSportPilates(); break;
     case 'libre': body = renderSportLibre(); break;
   }
@@ -1308,13 +1505,13 @@ function renderSportPas(){
   const today = todayStr();
   const log = STATE.stepsLog.filter(s=>s.date===today);
   const total = log.reduce((a,s)=>a+s.steps,0);
-  const goal = stepsGoalFor(today);
+  const goal = stepsGoalFor(today); const goalMid = (goal.min+goal.max)/2;
   const week = STATE.stepsLog.filter(s=>s.date>=addDays(today,-6));
   const weekTotal = week.reduce((a,s)=>a+s.steps,0);
   return `
   <div class="card section">
-    <div class="row between"><div class="tile-val num" style="font-size:28px;">${total.toLocaleString('fr-FR')}</div><span class="pill">objectif ${goal.toLocaleString('fr-FR')}</span></div>
-    <div class="progress-bar" style="margin:10px 0;"><div style="width:${clamp(total/goal*100,0,100)}%"></div></div>
+    <div class="row between"><div class="tile-val num" style="font-size:28px;">${total.toLocaleString('fr-FR')}</div><span class="pill">objectif ${goal.min.toLocaleString('fr-FR')}–${goal.max.toLocaleString('fr-FR')}</span></div>
+    <div class="progress-bar" style="margin:10px 0;"><div style="width:${clamp(total/goalMid*100,0,100)}%"></div></div>
     <div class="tile-sub">L'objectif augmente très progressivement chaque semaine, sans jamais imposer 10 000 pas. Tu peux saisir librement ta valeur réelle.</div>
     <button class="btn primary" style="margin-top:10px;" data-action="open-steps">+ Ajouter des pas</button>
   </div>
@@ -1405,20 +1602,27 @@ function renderSportTractions(){
 
 function renderSportRenfo(){
   const level = STATE.strengthLevel;
-  const exos = STRENGTH_EXERCISES[level];
+  const location = STATE.strengthLocation || 'maison';
+  const exos = STRENGTH_EXERCISES[location][level];
   const logs = STATE.strengthLog.slice().reverse();
   return `
   <div class="card section">
+    <div class="eyebrow">Selon ton humeur : à la maison ou à la salle ON AIR ?</div>
+    <div class="row" style="margin-top:6px;">
+      <button class="btn sm ${location==='maison'?'primary':''}" data-action="set-strength-location" data-location="maison">🏠 Maison</button>
+      <button class="btn sm ${location==='salle'?'primary':''}" data-action="set-strength-location" data-location="salle">🏋️ Salle ON AIR</button>
+    </div>
+    <hr class="sep">
     <div class="eyebrow">Niveau</div>
     <div class="row" style="margin-top:6px;">
       ${['debutante','intermediaire','avancee'].map(l=>`<button class="btn sm ${level===l?'primary':''}" data-action="set-strength-level" data-level="${l}">${l==='debutante'?'Débutante':l==='intermediaire'?'Intermédiaire':'Avancée'}</button>`).join('')}
     </div>
     <hr class="sep">
-    <div class="eyebrow">🏋️ Séance proposée (poids libres, élastiques, barre, ballon)</div>
+    <div class="eyebrow">${location==='maison'?'🏠 Séance proposée (poids libres, élastiques, barre, ballon)':'🏋️ Séance proposée (machines guidées, salle ON AIR)'}</div>
     ${exos.map(e=>`<div class="list-item" style="flex-direction:column;align-items:flex-start;">
       <b>${e.name}</b>
       <div class="row wrap" style="margin-top:4px;">
-        <span class="pill">${e.series} séries</span><span class="pill">${e.reps}</span><span class="pill muted">⏱️ repos ${e.repos}s</span>${e.poids?'<span class="pill muted">🏋️ avec charge</span>':''}
+        <span class="pill">${e.series} séries</span><span class="pill">${e.reps}</span>${e.repos?`<span class="pill muted">⏱️ repos ${e.repos}s</span>`:''}${e.poids?'<span class="pill muted">🏋️ avec charge</span>':''}
       </div>
     </div>`).join('')}
     <button class="btn primary" style="margin-top:10px;" data-action="open-log" data-type="renforcement">+ Enregistrer cette séance</button>
@@ -1426,9 +1630,37 @@ function renderSportRenfo(){
   <div class="section-title"><h2>Historique</h2></div>
   ${logs.length? logs.slice(0,15).map(l=>`
     <div class="list-item" style="flex-direction:column;align-items:flex-start;">
-      <div>${fmtDateShort(l.date)} — niveau ${l.level} ${l.comment?('· '+l.comment):''}</div>
+      <div>${fmtDateShort(l.date)} — ${l.location==='salle'?'🏋️ Salle':'🏠 Maison'} · niveau ${l.level} ${l.comment?('· '+l.comment):''}</div>
       ${l.exercices && l.exercices.length? `<div class="row wrap" style="margin-top:4px;">${l.exercices.filter(x=>x.poids).map(x=>`<span class="pill muted">${x.name} · ${x.poids}kg</span>`).join('')}</div>`:''}
     </div>`).join(''):'<div class="empty">Aucune séance enregistrée.</div>'}
+  `;
+}
+
+function renderSportBoxe(){
+  const monthIdx = clamp(Math.floor(weekIndexSince(STATE.profile.dateDebut,todayStr())/4.33),0,11);
+  const plan = BOXING_PROGRAM[monthIdx];
+  const logs = STATE.sessionsLog.filter(s=>s.type==='boxe').sort((a,b)=>b.date.localeCompare(a.date));
+  return `
+  <div class="card section">
+    <div class="row between"><div class="eyebrow">🥊 Boxe / MMA — sac de frappe, en libre accès à la salle</div><span class="pill">Mois ${monthIdx+1}/12</span></div>
+    <h2 style="font-size:17px;margin-top:4px;">${plan.titre}</h2>
+    <div class="recipe-text" style="margin-top:6px;"><b>Échauffement (avant le sac)</b> : ${BOXING_ECHAUFFEMENT}</div>
+    <div class="row wrap" style="margin-top:8px;">
+      <span class="pill">${plan.rounds} rounds</span><span class="pill">${Math.round(plan.dureeRound/60*10)/10} min / round</span><span class="pill muted">⏱️ repos ${plan.repos}s</span>
+    </div>
+    <div class="eyebrow" style="margin-top:10px;">Combos à travailler sur le sac</div>
+    ${plan.combos.map(c=>`<div class="list-item"><div style="flex:1;">🥊 ${c}</div></div>`).join('')}
+    ${plan.note?`<div class="recipe-text" style="margin-top:6px;color:var(--muted);">${plan.note}</div>`:''}
+    <div class="recipe-text" style="margin-top:6px;"><b>Retour au calme</b> : ${BOXING_RETOUR_CALME}</div>
+    <div class="recipe-text" style="margin-top:10px;color:var(--muted);">Séance en autonomie, sans coach : reste toujours dans tes limites, priorité à la technique propre plutôt qu'à la puissance, surtout sur un sac non supervisé.</div>
+    <button class="btn primary" style="margin-top:10px;" data-action="open-log" data-type="boxe">+ Enregistrer cette séance</button>
+  </div>
+  <div class="section-title"><h2>Historique</h2></div>
+  ${logs.length? logs.slice(0,15).map(l=>`
+    <div class="list-item" style="flex-direction:column;align-items:flex-start;">
+      <div>${fmtDateShort(l.date)} — ${l.rounds||'-'} rounds × ${l.dureeRound||'-'} sec ${l.technique?('· '+l.technique):''}</div>
+      <div class="tile-sub">Ressenti : ${l.rpe||'-'}/10 ${l.comment? '· '+l.comment:''}</div>
+    </div>`).join('') : '<div class="empty">Aucune séance enregistrée.</div>'}
   `;
 }
 
@@ -1544,7 +1776,7 @@ function renderProgression(){
   const tempsCourse = runs.reduce((a,r)=>a+(r.dureeContinue||r.duree||0),0);
   const bestRun = STATE.sessionsLog.filter(s=>s.type==='course').reduce((m,r)=>Math.max(m,r.dureeContinue||0),0);
   const counts = {};
-  ['tapis','spinning','elliptique','corde','tractions','renforcement'].forEach(t=> counts[t]=STATE.sessionsLog.filter(s=>s.type===t && s.date>=since).length);
+  ['tapis','spinning','elliptique','corde','tractions','renforcement','boxe'].forEach(t=> counts[t]=STATE.sessionsLog.filter(s=>s.type===t && s.date>=since).length);
   const pilatesDone = STATE.pilatesLibrary.filter(v=>v.done).length;
   const tasksDone = STATE.kanban.done.length;
   const earned = BADGE_DEFS.filter(b=>b.check(STATE));
@@ -1571,6 +1803,7 @@ function renderProgression(){
     <div class="tile"><div class="tile-label">Elliptique</div><div class="tile-val num">${counts.elliptique}</div></div>
     <div class="tile"><div class="tile-label">Corde</div><div class="tile-val num">${counts.corde}</div></div>
     <div class="tile"><div class="tile-label">Renforcement</div><div class="tile-val num">${counts.renforcement}</div></div>
+    <div class="tile"><div class="tile-label">Boxe</div><div class="tile-val num">${counts.boxe}</div></div>
     <div class="tile"><div class="tile-label">Pilates</div><div class="tile-val num">${pilatesDone}</div></div>
   </div>
   <div class="section">
@@ -1762,6 +1995,7 @@ function modalLogSession(type){
   const isCorde = type==='corde';
   const isTraction = type==='tractions';
   const isRenfo = type==='renforcement';
+  const isBoxe = type==='boxe';
   openModal(`
     <h3 class="display" style="margin-bottom:12px;">${ACTIVITY_LABEL[type]}</h3>
     <div class="field"><label>Date</label><input type="date" id="m-date" value="${todayStr()}"></div>
@@ -1796,9 +2030,21 @@ function modalLogSession(type){
       <div class="field"><label>Répétitions</label><input type="text" id="m-reps" value="${st.reps}"></div>
       <div class="field"><label>Repos entre les séries (sec)</label><input type="number" id="m-repos" value="${st.repos}"></div>
     `; })():''}
+    ${isBoxe?(()=>{
+      const monthIdx = clamp(Math.floor(weekIndexSince(STATE.profile.dateDebut,todayStr())/4.33),0,11);
+      const plan = BOXING_PROGRAM[monthIdx];
+      return `
+      <div class="field"><label>Nombre de rounds</label><input type="number" id="m-rounds" value="${plan.rounds}"></div>
+      <div class="field"><label>Durée par round (sec)</label><input type="number" id="m-dureeround" value="${plan.dureeRound}"></div>
+      <div class="field"><label>Repos entre les rounds (sec)</label><input type="number" id="m-boxerepos" value="${plan.repos}"></div>
+      <div class="field"><label>Technique travaillée</label><input type="text" id="m-technique" placeholder="ex. jab-direct-crochet, esquives..." value="${plan.titre}"></div>
+      <div class="field"><label>Ressenti (1-10)</label><input type="number" min="1" max="10" id="m-rpe"></div>
+    `; })():''}
     ${isRenfo?(()=>{
-      const exos = STRENGTH_EXERCISES[STATE.strengthLevel];
-      return `<div class="field"><label>Niveau</label><input type="text" id="m-level" value="${STATE.strengthLevel}" readonly></div>
+      const loc = STATE.strengthLocation || 'maison';
+      const exos = STRENGTH_EXERCISES[loc][STATE.strengthLevel];
+      return `<div class="field"><label>Lieu</label><input type="text" id="m-location" value="${loc==='salle'?'Salle ON AIR':'Maison'}" readonly></div>
+      <div class="field"><label>Niveau</label><input type="text" id="m-level" value="${STATE.strengthLevel}" readonly></div>
       <div class="eyebrow" style="margin:10px 0 4px;">Charges utilisées (kg, si applicable)</div>
       ${exos.map((e,i)=>`
         <div class="field" data-exo-row>
@@ -1955,6 +2201,7 @@ document.addEventListener('click', e=>{
       if(type==='course') Object.assign(base,{duree:numval('m-duree'), dureeContinue:numval('m-continue'), distance:numval('m-distance'), vitesse:numval('m-vitesse'), fc:numval('m-fc'), rpe:numval('m-rpe'), essoufflement:numval('m-essouf')});
       if(['tapis','spinning','elliptique'].includes(type)) Object.assign(base,{variante:val('m-variante'), duree:numval('m-duree'), vitesse:numval('m-vitesse'), inclinaison:numval('m-inclinaison'), distance:numval('m-distance')});
       if(type==='corde') Object.assign(base,{series:numval('m-series'), dureeSerie:numval('m-dureeserie'), recup:numval('m-recup'), repos:numval('m-recup'), difficulte:numval('m-difficulte')});
+      if(type==='boxe') Object.assign(base,{rounds:numval('m-rounds'), dureeRound:numval('m-dureeround'), repos:numval('m-boxerepos'), technique:val('m-technique'), rpe:numval('m-rpe')});
       if(type==='tractions'){
         const stage = numval('m-stage')||STATE.pullup.stage;
         const entry = { id:uid(), date:base.date, stage, series:numval('m-series'), reps:val('m-reps'), repos:numval('m-repos'), comment:base.comment };
@@ -1966,9 +2213,9 @@ document.addEventListener('click', e=>{
           name:inp.dataset.exoName, series:parseInt(inp.dataset.exoSeries), reps:inp.dataset.exoReps,
           repos:parseInt(inp.dataset.exoRepos), poids: inp.value? parseFloat(inp.value): undefined,
         }));
-        const entry = {id:uid(), date:base.date, level:STATE.strengthLevel, comment:base.comment, exercices};
+        const entry = {id:uid(), date:base.date, level:STATE.strengthLevel, location:STATE.strengthLocation||'maison', comment:base.comment, exercices};
         STATE.strengthLog.push(entry);
-        Object.assign(base,{level:STATE.strengthLevel, exercices});
+        Object.assign(base,{level:STATE.strengthLevel, location:STATE.strengthLocation||'maison', exercices});
       }
       STATE.sessionsLog.push(base);
       saveState(); closeModal(); toast('Séance enregistrée'); checkNewBadges(); render(); break;
@@ -1978,6 +2225,7 @@ document.addEventListener('click', e=>{
     case 'pullup-advance': STATE.pullup.stage = clamp(STATE.pullup.stage+1,1,10); saveState(); render(); break;
     case 'pullup-back': STATE.pullup.stage = clamp(STATE.pullup.stage-1,1,10); saveState(); render(); break;
     case 'set-strength-level': STATE.strengthLevel = btn.dataset.level; saveState(); render(); break;
+    case 'set-strength-location': STATE.strengthLocation = btn.dataset.location; saveState(); render(); break;
 
     case 'open-pilates-add': modalPilatesAdd(); break;
     case 'save-pilates': {
