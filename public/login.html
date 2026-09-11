@@ -10,37 +10,86 @@
     display:flex;align-items:center;justify-content:center;
     background:linear-gradient(160deg,#2C1B47,#3A2360 45%,#5A2E5E);
     font-family:system-ui,-apple-system,sans-serif;color:#fff;
+    min-height:100vh;padding:20px;box-sizing:border-box;
   }
   .box{background:rgba(255,255,255,0.08);backdrop-filter:blur(6px);border:1px solid rgba(255,255,255,0.15);
-    border-radius:20px;padding:32px 26px;width:280px;text-align:center;}
+    border-radius:20px;padding:32px 26px;width:300px;max-width:100%;text-align:center;box-sizing:border-box;}
   .box h1{font-size:22px;margin:0 0 4px;}
-  .box p{font-size:13px;color:rgba(255,255,255,0.7);margin:0 0 20px;}
-  input{width:100%;padding:12px 14px;border-radius:12px;border:1px solid rgba(255,255,255,0.25);
-    background:rgba(255,255,255,0.1);color:#fff;font-size:20px;text-align:center;letter-spacing:0.2em;box-sizing:border-box;}
-  input::placeholder{color:rgba(255,255,255,0.4);letter-spacing:normal;font-size:14px;}
-  button{margin-top:14px;width:100%;padding:12px;border:none;border-radius:12px;
+  .box p{font-size:13px;color:rgba(255,255,255,0.7);margin:0 0 18px;}
+  .field{margin-bottom:12px;text-align:left;}
+  label{display:block;font-size:12px;color:rgba(255,255,255,0.65);margin-bottom:4px;}
+  input{width:100%;padding:11px 14px;border-radius:12px;border:1px solid rgba(255,255,255,0.25);
+    background:rgba(255,255,255,0.1);color:#fff;font-size:15px;box-sizing:border-box;}
+  input::placeholder{color:rgba(255,255,255,0.4);}
+  button.submit{margin-top:6px;width:100%;padding:12px;border:none;border-radius:12px;
     background:linear-gradient(135deg,#B65FCF,#6E7FE0);color:#fff;font-weight:700;font-size:15px;cursor:pointer;}
+  .switch{margin-top:16px;font-size:13px;color:rgba(255,255,255,0.75);}
+  .switch button{background:none;border:none;color:#E3B8F5;text-decoration:underline;cursor:pointer;font-size:13px;padding:0;}
   .err{color:#FFB4C6;font-size:13px;margin-top:10px;min-height:16px;}
+  .ok{color:#B8F5D0;font-size:13px;margin-top:10px;min-height:16px;}
+  [hidden]{display:none!important;}
 </style>
 </head>
 <body>
-  <form class="box" id="f">
+  <form class="box" id="f-login">
     <h1>🌸 Cycle</h1>
-    <p>Entre ton code d'accès</p>
-    <input id="pin" type="password" inputmode="numeric" placeholder="Code" autofocus>
-    <button type="submit">Entrer</button>
-    <div class="err" id="err"></div>
+    <p>Connecte-toi à ton compte</p>
+    <div class="field"><label>Identifiant</label><input id="login-username" type="text" autocomplete="username" placeholder="ton identifiant" autofocus required></div>
+    <div class="field"><label>Mot de passe</label><input id="login-password" type="password" autocomplete="current-password" placeholder="mot de passe" required></div>
+    <button class="submit" type="submit">Se connecter</button>
+    <div class="err" id="login-err"></div>
+    <div class="switch">Pas encore de compte ? <button type="button" id="show-register">Créer un compte</button></div>
   </form>
+
+  <form class="box" id="f-register" hidden>
+    <h1>🌸 Cycle</h1>
+    <p>Crée ton compte personnel</p>
+    <div class="field"><label>Prénom / nom affiché</label><input id="reg-display" type="text" placeholder="ex. Aurore"></div>
+    <div class="field"><label>Identifiant</label><input id="reg-username" type="text" autocomplete="username" placeholder="3 caractères minimum" required></div>
+    <div class="field"><label>Mot de passe</label><input id="reg-password" type="password" autocomplete="new-password" placeholder="6 caractères minimum" required></div>
+    <div class="field"><label>Qui es-tu ?</label>
+      <select id="reg-role">
+        <option value="toi">Aurore — mon cahier personnalisé (repas, sport, cycle)</option>
+        <option value="conjoint">Mon conjoint — son cahier personnalisé</option>
+        <option value="autre">Une autre personne — calcul automatique selon mon profil</option>
+      </select>
+    </div>
+    <button class="submit" type="submit">Créer mon compte</button>
+    <div class="err" id="reg-err"></div>
+    <div class="switch">Déjà un compte ? <button type="button" id="show-login">Se connecter</button></div>
+  </form>
+
 <script>
-document.getElementById('f').addEventListener('submit', async (e)=>{
+const fLogin = document.getElementById('f-login');
+const fRegister = document.getElementById('f-register');
+document.getElementById('show-register').addEventListener('click', ()=>{ fLogin.hidden = true; fRegister.hidden = false; });
+document.getElementById('show-login').addEventListener('click', ()=>{ fRegister.hidden = true; fLogin.hidden = false; });
+
+fLogin.addEventListener('submit', async (e)=>{
   e.preventDefault();
-  const pin = document.getElementById('pin').value;
-  const err = document.getElementById('err');
+  const username = document.getElementById('login-username').value;
+  const password = document.getElementById('login-password').value;
+  const err = document.getElementById('login-err');
   err.textContent = '';
   try{
-    const r = await fetch('/api/login', {method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify({pin})});
+    const r = await fetch('/api/login', {method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify({username,password})});
     const d = await r.json();
-    if(d.ok){ window.location.href = '/'; } else { err.textContent = d.error || 'Code incorrect'; }
+    if(d.ok){ window.location.href = '/'; } else { err.textContent = d.error || 'Identifiant ou mot de passe incorrect.'; }
+  }catch(e){ err.textContent = 'Erreur réseau'; }
+});
+
+fRegister.addEventListener('submit', async (e)=>{
+  e.preventDefault();
+  const displayName = document.getElementById('reg-display').value;
+  const username = document.getElementById('reg-username').value;
+  const password = document.getElementById('reg-password').value;
+  const role = document.getElementById('reg-role').value;
+  const err = document.getElementById('reg-err');
+  err.textContent = '';
+  try{
+    const r = await fetch('/api/register', {method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify({username,password,displayName})});
+    const d = await r.json();
+    if(d.ok){ window.location.href = '/?role='+encodeURIComponent(role); } else { err.textContent = d.error || 'Impossible de créer le compte.'; }
   }catch(e){ err.textContent = 'Erreur réseau'; }
 });
 </script>
