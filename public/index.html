@@ -558,11 +558,14 @@ const BADGE_DEFS = [
 
 /* ============================= PERSISTANCE ============================= */
 // Cache local (instantané, offline) + synchronisation serveur (source de vérité, persistante sur Render).
-const STORAGE_KEY = 'cycle_annuel_state_v1';
+const STORAGE_KEY_BASE = 'cycle_annuel_state_v1';
+let CURRENT_USERNAME = null; // défini après /api/session, pour isoler le cache local par compte sur un appareil partagé
+let CURRENT_DISPLAY_NAME = null;
+function storageKey(){ return STORAGE_KEY_BASE + '__' + (CURRENT_USERNAME || 'anon'); }
 let _saveTimer = null;
 let _syncing = false;
 function saveState(){
-  try{ localStorage.setItem(STORAGE_KEY, JSON.stringify(STATE)); }catch(e){ console.warn('cache local échoué', e); }
+  try{ localStorage.setItem(storageKey(), JSON.stringify(STATE)); }catch(e){ console.warn('cache local échoué', e); }
   clearTimeout(_saveTimer);
   _saveTimer = setTimeout(syncToServer, 500);
 }
@@ -585,16 +588,26 @@ function setSyncStatus(status){
 }
 function loadStateLocal(){
   try{
-    const raw = localStorage.getItem(STORAGE_KEY);
+    const raw = localStorage.getItem(storageKey());
     if(raw) return JSON.parse(raw);
   }catch(e){ console.warn('load failed', e); }
   return null;
+}
+async function loadSession(){
+  try{
+    const r = await fetch('/api/session', { credentials:'include' });
+    if(!r.ok) return null;
+    const d = await r.json();
+    if(d && d.authed){ CURRENT_USERNAME = d.username; CURRENT_DISPLAY_NAME = d.displayName || d.username; return d; }
+    return null;
+  }catch(e){ console.warn('session illisible', e); return null; }
 }
 async function loadStateServer(){
   try{
     const r = await fetch('/api/state', { credentials:'include' });
     if(!r.ok) return null;
     const d = await r.json();
+    if(d && d.username){ CURRENT_USERNAME = d.username; }
     return d.state || null;
   }catch(e){ console.warn('lecture serveur échouée, utilisation du cache local', e); return null; }
 }
@@ -971,7 +984,7 @@ function pickMenuRecipe(slot, season, menuKey, forbidden){
 
 /* ----- Mise à l'échelle du profil : les repas sont ceux du planner d'origine (83,5 kg / 173 cm),
    proportionnellement ajustés aux besoins réels calculés à partir du poids/taille du profil actif. ----- */
-const REFERENCE_PROFILE = { sexe:'Femme', age:32, taille:173, poids:83.5 };
+const REFERENCE_PROFILE = { sexe:'Femme', age:32, taille:173, poids:83.5, objectif:'perte' };
 function nearest5(n){ return Math.round(n/5)*5; }
 function scaleRecipe(recipe, ratio){
   if(Math.abs(ratio-1) < 0.02) return recipe; // pas de distorsion inutile si proche de la référence
@@ -980,7 +993,8 @@ function scaleRecipe(recipe, ratio){
   return Object.assign({}, recipe, { ingredients, macros, scaled:true });
 }
 function profileScaleRatio(profile){
-  return bmr(profile) / bmr(REFERENCE_PROFILE);
+  // basé sur les besoins caloriques cibles (donc poids/taille/âge ET objectif), pas seulement le métabolisme de base
+  return calorieTarget(profile) / calorieTarget(REFERENCE_PROFILE);
 }
 
 function menuForDate(dateStr, forbidden){
@@ -995,7 +1009,7 @@ function menuForDate(dateStr, forbidden){
   });
   return out;
 }
-const SLOT_LABEL = {petitdej:'Petit-déjeuner', dejeuner:'Déjeuner', collation:'Collation', diner:'Dîner', complement:'Complément (pour atteindre les minimums)'};
+const SLOT_LABEL = {petitdej:'Petit-déjeuner', dejeuner:'Déjeuner', collation:'Collation', diner:'Dîner', complement:'Complément (pour atteindre les minimums)', boost:'Phase prémenstruelle'};
 
 /* ============================= COURSES : RAYONS ============================= */
 const RAYON_MAP = {
@@ -1020,12 +1034,53 @@ function rayonOf(name){ return RAYON_MAP[name] || "Fruits & légumes"; }
 const APP_START_DATE = '2026-09-01';
 const APP_END_DATE = '2027-08-31';
 
+/* ============================= DONNÉES RÉELLES (cahiers personnalisés) =============================
+   Repas et séances réellement rédigés pour Aurore (« toi ») et son conjoint, jour par jour sur 1 an.
+   Au-delà de cette année, le programme reprend depuis le début en boucle (mapToAuthoredYear) : c'est
+   ce qui permet à l'application de continuer à générer des repas et des séances après 1 an. */
+const REAL_DATA_ANCHOR = '2026-09-10';
+const REAL_DATA_CYCLE_DAYS = 365;
+let MEALS_DATA = null, SPORT_TOI_DATA = null, SPORT_CONJOINT_DATA = null, POSTURE_DATA = null;
+let REAL_DATA_READY = false;
+async function loadRealData(){
+  try{
+    const [meals, sportToi, sportConjoint, posture] = await Promise.all([
+      fetch('data/meals.json').then(r=>r.json()),
+      fetch('data/sport_aurore.json').then(r=>r.json()),
+      fetch('data/sport_yoan.json').then(r=>r.json()),
+      fetch('data/posture.json').then(r=>r.json()),
+    ]);
+    MEALS_DATA = meals; SPORT_TOI_DATA = sportToi; SPORT_CONJOINT_DATA = sportConjoint; POSTURE_DATA = posture;
+    REAL_DATA_READY = true;
+  }catch(e){ console.warn('chargement des cahiers personnalisés échoué, retour au moteur générique', e); }
+}
+function mapToAuthoredYear(dateStr){
+  const diff = Math.round((parseISO(dateStr) - parseISO(REAL_DATA_ANCHOR)) / 864e5);
+  const offset = ((diff % REAL_DATA_CYCLE_DAYS) + REAL_DATA_CYCLE_DAYS) % REAL_DATA_CYCLE_DAYS;
+  return addDays(REAL_DATA_ANCHOR, offset);
+}
+function usesRealData(profile){
+  return REAL_DATA_READY && (profile.role==='toi' || profile.role==='conjoint');
+}
+function realMealDay(dateStr){
+  if(!MEALS_DATA) return null;
+  return MEALS_DATA[mapToAuthoredYear(dateStr)] || null;
+}
+function realSportDay(dateStr, role){
+  const src = role==='conjoint' ? SPORT_CONJOINT_DATA : SPORT_TOI_DATA;
+  if(!src) return null;
+  return src[mapToAuthoredYear(dateStr)] || null;
+}
+function parseNum(str){ if(str==null) return null; const m = String(str).replace(',','.').match(/-?\d+(\.\d+)?/); return m? parseFloat(m[0]) : null; }
+
 function defaultState(){
   return {
     profile:{
       sexe:'Femme', age:32, taille:173, poids:83.5, masseGrasse:32.5,
-      pasBase:2000, regime:'Végétarienne', dateDebut:APP_START_DATE,
+      pasBase:2000, regime:'Végétarienne', objectif:'perte', dateDebut:APP_START_DATE,
+      role:'autre', // 'toi' (Aurore, cahier personnalisé), 'conjoint' (cahier du conjoint), ou 'autre' (moteur générique adapté au profil)
     },
+    postureLog:{}, // { '2026-09-10': { jour: 3, done:[...noms cochés] } }
     forbidden:{ banned:['Viande','Poisson','Concombre','Aubergine'], limited:[], favorite:[] },
     weightLog:[], measurementsLog:[], impedanceLog:[],
     stepsLog:[],
@@ -1054,6 +1109,7 @@ function defaultState(){
     },
     hydration:{}, // { '2026-09-01': verres(int) }
     checkins:{}, // { '2026-09-01': { ressenti:1-5, sommeilHeures, sommeilQualite, commentaire } }
+    cycle:{ cycleLength:28, periodLength:5, periodStarts:[] }, // periodStarts: dates ISO du 1er jour des règles, notées sur le calendrier
   };
 }
 let STATE = loadStateLocal() || defaultState();
@@ -1061,6 +1117,12 @@ let STATE = loadStateLocal() || defaultState();
 function ensureShape(){
   const d = defaultState();
   Object.keys(d).forEach(k=>{ if(!(k in STATE)) STATE[k]=d[k]; });
+  // migration douce des sous-objets (profile, cycle...) pour les comptes créés avant l'ajout de nouveaux champs
+  ['profile','cycle'].forEach(k=>{
+    if(STATE[k] && typeof STATE[k]==='object' && d[k]){
+      Object.keys(d[k]).forEach(f=>{ if(!(f in STATE[k])) STATE[k][f]=d[k][f]; });
+    }
+  });
 }
 ensureShape();
 
@@ -1071,9 +1133,14 @@ function bmr(profile){
 }
 const KCAL_MIN = 1600, PROTEIN_MIN = 150;
 function calorieTarget(profile){
-  // activité légère à modérée, déficit doux et progressif (pas de restriction sévère) — jamais sous le minimum fixé
+  // activité légère à modérée ; l'ajustement dépend de l'objectif choisi — jamais sous le minimum fixé
   const base = bmr(profile) * 1.4;
-  return Math.max(KCAL_MIN, Math.round(base - 250));
+  const objectif = profile.objectif || 'perte';
+  let adjusted;
+  if(objectif==='perte') adjusted = base - 300;       // déficit doux et progressif
+  else if(objectif==='prise') adjusted = base + 250;  // léger surplus
+  else adjusted = base;                                // maintien
+  return Math.max(KCAL_MIN, Math.round(adjusted));
 }
 function proteinTarget(profile){
   return Math.max(PROTEIN_MIN, Math.round(profile.poids * 1.6));
@@ -1091,6 +1158,68 @@ function stepsGoalFor(dateStr){
   return { min, max };
 }
 function stepsGoalLabel(dateStr){ const g = stepsGoalFor(dateStr); return `${g.min}–${g.max}`; }
+
+/* ============================= CYCLE MENSTRUEL ============================= */
+const CYCLE_PHASE_LABEL = {
+  menstruelle:{ label:'Règles', emoji:'🩸' },
+  folliculaire:{ label:'Phase folliculaire', emoji:'🌱' },
+  ovulatoire:{ label:'Phase ovulatoire', emoji:'🌸' },
+  luteale:{ label:'Phase lutéale', emoji:'🍂' },
+  premenstruelle:{ label:'Phase prémenstruelle', emoji:'🌙' },
+};
+function cyclePhaseForDate(dateStr){
+  const cyc = STATE.cycle;
+  if(!cyc || !cyc.periodStarts || !cyc.periodStarts.length) return null;
+  const cLen = cyc.cycleLength||28, pLen = cyc.periodLength||5;
+  const starts = cyc.periodStarts.slice().sort();
+  let dayInCycle;
+  let prevStart = null;
+  starts.forEach(s=>{ if(s<=dateStr) prevStart = s; });
+  if(prevStart){
+    const diff = Math.round((parseISO(dateStr) - parseISO(prevStart))/864e5);
+    dayInCycle = (diff % cLen) + 1;
+  } else {
+    // la date est avant la première règle notée : on extrapole en remontant depuis cette première date
+    const first = starts[0];
+    const diff = Math.round((parseISO(first) - parseISO(dateStr))/864e5);
+    const mod = diff % cLen;
+    dayInCycle = mod===0 ? 1 : cLen - mod + 1;
+  }
+  if(dayInCycle <= pLen) return 'menstruelle';
+  if(dayInCycle <= 13) return 'folliculaire';
+  if(dayInCycle <= 16) return 'ovulatoire';
+  if(dayInCycle <= cLen-5) return 'luteale';
+  return 'premenstruelle';
+}
+function isPeriodDay(dateStr){
+  const cyc = STATE.cycle;
+  if(!cyc || !cyc.periodStarts) return false;
+  const pLen = cyc.periodLength||5;
+  return cyc.periodStarts.some(s=>{
+    const diff = Math.round((parseISO(dateStr) - parseISO(s))/864e5);
+    return diff>=0 && diff<pLen;
+  });
+}
+function togglePeriodStart(dateStr){
+  STATE.cycle.periodStarts = STATE.cycle.periodStarts||[];
+  const idx = STATE.cycle.periodStarts.indexOf(dateStr);
+  if(idx>=0) STATE.cycle.periodStarts.splice(idx,1);
+  else STATE.cycle.periodStarts.push(dateStr);
+  STATE.cycle.periodStarts.sort();
+}
+/* Adaptation douce du sport prévu selon la phase du cycle : allège les séances intenses en période de règles
+   et de phase prémenstruelle, sans jamais écraser une modification manuelle du calendrier (celle-ci est prioritaire). */
+function adaptPlanForCycle(planned, dateStr){
+  const phase = cyclePhaseForDate(dateStr);
+  if(!phase) return planned;
+  if(phase==='menstruelle'){
+    return planned.map(p => ['renforcement','tractions','corde','boxe'].includes(p) ? 'pilates' : p);
+  }
+  if(phase==='premenstruelle'){
+    return planned.map(p => (p==='course'||p==='boxe') ? 'marche' : p);
+  }
+  return planned;
+}
 
 /* ============================= NAVIGATION / SHELL ============================= */
 const ICONS = {
@@ -1114,6 +1243,7 @@ const TABS = [
 const UI = {
   tab: 'accueil',
   sportSub: 'course',
+  sportDate: todayStr(),
   nutritionDate: todayStr(),
   calMonth: new Date().getMonth(), calYear: new Date().getFullYear(),
   calSelected: todayStr(),
@@ -1129,7 +1259,7 @@ function renderTopbar(){
   top.innerHTML = `
     <div class="date-row">
       <div>
-        <div class="eyebrow">🌸 Cycle · Année 1</div>
+        <div class="eyebrow">🌸 Cycle${CURRENT_DISPLAY_NAME?' · '+CURRENT_DISPLAY_NAME:''}</div>
         <h1>${label}</h1>
       </div>
       <span id="sync-dot" class="sync-dot" data-status="ok" title="Synchronisation"></span>
@@ -1175,9 +1305,9 @@ const ACTIVITY_LABEL = {
   boxe:'Boxe / MMA (sac de frappe)', pilates:'Pilates', repos:'Repos', autre:'Activité libre',
 };
 function plannedForDate(dateStr){
-  if(STATE.calendarOverrides && STATE.calendarOverrides[dateStr]) return STATE.calendarOverrides[dateStr];
+  if(STATE.calendarOverrides && STATE.calendarOverrides[dateStr]) return STATE.calendarOverrides[dateStr]; // une modification manuelle est toujours prioritaire
   const dow = parseISO(dateStr).getDay();
-  return WEEKLY_TEMPLATE[dow];
+  return adaptPlanForCycle(WEEKLY_TEMPLATE[dow], dateStr);
 }
 function setPlannedForDate(dateStr, arr){
   STATE.calendarOverrides = STATE.calendarOverrides || {};
@@ -1193,15 +1323,28 @@ function currentRunWeek(dateStr){
 
 /* ============================= DASHBOARD ============================= */
 const MOODS = [{v:1,e:'😞'},{v:2,e:'🙁'},{v:3,e:'😐'},{v:4,e:'🙂'},{v:5,e:'😄'}];
+function dayNutritionTotals(dateStr){
+  const profile = STATE.profile;
+  if(usesRealData(profile)){
+    const day = realMealDay(dateStr);
+    const sideKey = profile.role==='conjoint' ? 'conjoint' : 'toi';
+    const bilan = day ? (day[sideKey].bilan||{}) : {};
+    const cible = bilan.cible ? bilan.cible.split(/[-–]/).map(parseNum) : [null,null];
+    return { k: parseNum(bilan.energie)||0, p: parseNum(bilan.proteines)||0, kcalTarget: cible[0]||calorieTarget(profile), protTarget: proteinTarget(profile) };
+  }
+  const menu = menuForDate(dateStr, STATE.forbidden);
+  const totals = ['petitdej','dejeuner','collation','diner','complement','boost'].reduce((acc,slot)=>{
+    if(menu[slot]){ acc.k+=menu[slot].macros.k; acc.p+=menu[slot].macros.p; } return acc;
+  },{k:0,p:0});
+  return { k: totals.k, p: totals.p, kcalTarget: calorieTarget(profile), protTarget: proteinTarget(profile) };
+}
 function renderDashboard(){
   const today = todayStr();
   const profile = STATE.profile;
   const checkin = STATE.checkins[today] || {};
-  const menu = menuForDate(today, STATE.forbidden);
-  const kcalTarget = calorieTarget(profile), protTarget = proteinTarget(profile);
-  const dayMacros = ['petitdej','dejeuner','collation','diner','complement'].reduce((acc,slot)=>{
-    if(menu[slot]){ acc.k+=menu[slot].macros.k; acc.p+=menu[slot].macros.p; } return acc;
-  },{k:0,p:0});
+  const nutriToday = dayNutritionTotals(today);
+  const kcalTarget = nutriToday.kcalTarget, protTarget = nutriToday.protTarget;
+  const dayMacros = { k: nutriToday.k, p: nutriToday.p };
   const todaySteps = STATE.stepsLog.filter(s=>s.date===today).reduce((a,s)=>a+s.steps,0);
   const stepsGoal = stepsGoalFor(today); const stepsGoalMid = (stepsGoal.min+stepsGoal.max)/2;
   const planned = plannedForDate(today);
@@ -1308,10 +1451,11 @@ function renderNutrition(){
 }
 function renderNutritionMenu(){
   const date = UI.nutritionDate;
+  if(usesRealData(STATE.profile)) return renderNutritionMenuReal(date);
   const season = seasonOf(date);
   const menu = menuForDate(date, STATE.forbidden);
   const kcalTarget = calorieTarget(STATE.profile), protTarget = proteinTarget(STATE.profile);
-  const totals = ['petitdej','dejeuner','collation','diner','complement'].reduce((a,s)=>{ if(menu[s]){a.k+=menu[s].macros.k;a.p+=menu[s].macros.p;a.g+=menu[s].macros.g;a.l+=menu[s].macros.l;} return a;},{k:0,p:0,g:0,l:0});
+  const totals = ['petitdej','dejeuner','collation','diner','complement','boost'].reduce((a,s)=>{ if(menu[s]){a.k+=menu[s].macros.k;a.p+=menu[s].macros.p;a.g+=menu[s].macros.g;a.l+=menu[s].macros.l;} return a;},{k:0,p:0,g:0,l:0});
   return `
   <div class="row between" style="margin-bottom:10px;">
     <button class="btn icon" data-action="nut-day" data-delta="-1">‹</button>
@@ -1329,16 +1473,65 @@ function renderNutritionMenu(){
       <div class="macro-chip">Lipides <b class="num">${Math.round(totals.l)}</b> g</div>
     </div>
   </div>
+  ${menu.cyclePhase? `<div class="tile section"><div class="tile-label">Cycle</div><div class="tile-sub" style="margin-top:4px;">${CYCLE_PHASE_LABEL[menu.cyclePhase].emoji} ${CYCLE_PHASE_LABEL[menu.cyclePhase].label}</div></div>`:''}
   ${['petitdej','dejeuner','collation','diner'].map(slot=> renderMealBlock(slot, menu[slot])).join('')}
+  ${menu.premenstrualBoost? renderMealBlock('boost', menu.premenstrualBoost):''}
   ${menu.complement? renderMealBlock('complement', menu.complement):''}
   `;
+}
+/* ----- Repas réels (cahier personnalisé Aurore / Conjoint), jour par jour, avec reprise en boucle après 1 an ----- */
+function renderNutritionMenuReal(date){
+  const day = realMealDay(date);
+  const sideKey = STATE.profile.role==='conjoint' ? 'conjoint' : 'toi';
+  const wrapped = mapToAuthoredYear(date) !== date;
+  if(!day) return `<div class="empty">Cahier personnalisé indisponible pour le moment.</div>`;
+  const side = day[sideKey];
+  const bilan = side.bilan || {};
+  const phase = cyclePhaseForDate(date);
+  return `
+  <div class="row between" style="margin-bottom:10px;">
+    <button class="btn icon" data-action="nut-day" data-delta="-1">‹</button>
+    <div style="text-align:center;">
+      <div class="eyebrow">Cahier personnalisé${wrapped?' · cycle annuel repris':''}</div>
+      <div style="font-weight:600;">${capitalize(fmtDateLong(date))}</div>
+    </div>
+    <button class="btn icon" data-action="nut-day" data-delta="1">›</button>
+  </div>
+  <div class="card section">
+    <div class="row wrap" style="gap:16px;">
+      ${bilan.energie?`<div class="macro-chip">Total <b class="num">${parseNum(bilan.energie)}</b> kcal ${bilan.cible?`<span style="color:var(--muted)">/ ${bilan.cible}</span>`:''}</div>`:''}
+      ${bilan.proteines?`<div class="macro-chip">Protéines <b class="num">${parseNum(bilan.proteines)}</b> g</div>`:''}
+      ${bilan.glucides?`<div class="macro-chip">Glucides <b class="num">${parseNum(bilan.glucides)}</b> g</div>`:''}
+      ${bilan.lipides?`<div class="macro-chip">Lipides <b class="num">${parseNum(bilan.lipides)}</b> g</div>`:''}
+      ${bilan.fibres?`<div class="macro-chip">Fibres <b class="num">${parseNum(bilan.fibres)}</b> g</div>`:''}
+    </div>
+  </div>
+  ${(sideKey==='toi' && phase)? `<div class="tile section"><div class="tile-label">Cycle</div><div class="tile-sub" style="margin-top:4px;">${CYCLE_PHASE_LABEL[phase].emoji} ${CYCLE_PHASE_LABEL[phase].label}</div></div>`:''}
+  ${side.moments.map(m=>renderRealMomentBlock(m)).join('')}
+  ${(sideKey==='toi' && phase==='premenstruelle')? renderMealBlock('boost', premenstrualBoostForReal()):''}
+  `;
+}
+function renderRealMomentBlock(m){
+  return `
+  <div class="meal-block card">
+    <div class="eyebrow">${m.label||''}</div>
+    <h3 style="font-size:16px;margin-top:4px;">${m.title||'—'}</h3>
+    ${m.items && m.items.length? `<div class="recipe-text" style="margin-top:6px;">${m.items.map(i=>`<div class="ingredient-row"><span>${i}</span></div>`).join('')}</div>`:''}
+    ${m.macro?`<div class="macro-row" style="margin-top:6px;"><span class="macro-chip">${m.macro}</span></div>`:''}
+  </div>`;
+}
+function premenstrualBoostForReal(){
+  const boost = premenstrualBoost();
+  return { name:'🌙 Boost prémenstruel (magnésium & réconfort)', macros:boost.macros, ingredients:boost.ingredients,
+    recette:"À prendre en collation : le magnésium (graines de courge) et le chocolat noir peuvent aider à atténuer le ressenti prémenstruel, en plus des repas prévus dans ton cahier.",
+    variante:"Remplacer par une infusion apaisante + 2 carrés de chocolat noir, ou par une poignée d'amandes." };
 }
 function renderMealBlock(slot, recipe){
   if(!recipe) return `<div class="meal-block card"><div class="eyebrow">${SLOT_LABEL[slot]}</div><div class="empty">Aucun plat disponible (vérifie les aliments bannis).</div></div>`;
   return `
   <div class="meal-block card">
     <div class="row between"><div class="eyebrow">${SLOT_LABEL[slot]}</div>
-      ${slot!=='complement'?`<button class="btn sm ghost" data-action="swap-meal" data-slot="${slot}">🔀 Varier</button>`:''}</div>
+      ${(slot!=='complement'&&slot!=='boost')?`<button class="btn sm ghost" data-action="swap-meal" data-slot="${slot}">🔀 Varier</button>`:''}</div>
     <h3 style="font-size:16px;margin-top:4px;">${recipe.name}</h3>
     <div class="macro-row">
       <span class="macro-chip"><b class="num">${Math.round(recipe.macros.k)}</b> kcal</span>
@@ -1453,9 +1646,16 @@ function sessionsThisWeek(){
 
 /* ============================= SPORT (screen) ============================= */
 function renderSport(){
-  const subtabs = [['course','🏃 Course'],['pas','🚶 Pas'],['cardio','🚴 Cardio'],['corde','🪢 Corde'],['tractions','💪 Tractions'],['renforcement','🏋️ Renfo'],['boxe','🥊 Boxe'],['pilates','🧘 Pilates'],['libre','🔄 Libre']];
+  const real = usesRealData(STATE.profile);
+  const subtabs = real
+    ? [['seance','📋 Séance du jour'],['posture','🧍 Posture'],['course','🏃 Course'],['pas','🚶 Pas'],['cardio','🚴 Cardio'],['corde','🪢 Corde'],['tractions','💪 Tractions'],['renforcement','🏋️ Renfo'],['boxe','🥊 Boxe'],['pilates','🧘 Pilates'],['libre','🔄 Libre']]
+    : [['course','🏃 Course'],['pas','🚶 Pas'],['cardio','🚴 Cardio'],['corde','🪢 Corde'],['tractions','💪 Tractions'],['renforcement','🏋️ Renfo'],['boxe','🥊 Boxe'],['pilates','🧘 Pilates'],['libre','🔄 Libre']];
+  let sub = UI.sportSub;
+  if(!real && (sub==='seance' || sub==='posture')) sub = 'course';
   let body='';
-  switch(UI.sportSub){
+  switch(sub){
+    case 'seance': body = renderSportSeance(); break;
+    case 'posture': body = renderSportPosture(); break;
     case 'course': body = renderSportCourse(); break;
     case 'pas': body = renderSportPas(); break;
     case 'cardio': body = renderSportCardio(); break;
@@ -1466,7 +1666,68 @@ function renderSport(){
     case 'pilates': body = renderSportPilates(); break;
     case 'libre': body = renderSportLibre(); break;
   }
-  return `<div class="subtabs">${subtabs.map(([id,l])=>`<button class="${UI.sportSub===id?'active':''}" data-subtab="sport:${id}">${l}</button>`).join('')}</div>${body}`;
+  return `<div class="subtabs">${subtabs.map(([id,l])=>`<button class="${sub===id?'active':''}" data-subtab="sport:${id}">${l}</button>`).join('')}</div>${body}`;
+}
+/* ----- Séance réelle (cahier personnalisé Aurore / Conjoint), jour par jour, avec reprise en boucle après 1 an ----- */
+function renderSportSeance(){
+  const date = UI.sportDate;
+  const role = STATE.profile.role;
+  const day = realSportDay(date, role);
+  const wrapped = mapToAuthoredYear(date) !== date;
+  const nav = `
+  <div class="row between" style="margin-bottom:10px;">
+    <button class="btn icon" data-action="sport-day" data-delta="-1">‹</button>
+    <div style="text-align:center;">
+      <div class="eyebrow">Cahier personnalisé${wrapped?' · cycle annuel repris':''}${day&&day.semaine?' · semaine '+day.semaine:''}</div>
+      <div style="font-weight:600;">${capitalize(fmtDateLong(date))}</div>
+    </div>
+    <button class="btn icon" data-action="sport-day" data-delta="1">›</button>
+  </div>`;
+  if(!day) return nav + `<div class="empty">Cahier de séance indisponible pour le moment.</div>`;
+  const isToi = role!=='conjoint';
+  const rows = (day.table||[]).map(r=>{
+    if(Array.isArray(r)) return `<div class="list-item" style="flex-direction:column;align-items:flex-start;"><b>${r[0]||''}</b><div class="tile-sub">${r.slice(1).filter(Boolean).join(' · ')}</div></div>`;
+    return `<div class="list-item" style="flex-direction:column;align-items:flex-start;"><b>${r.name||''}</b>${r.cells&&r.cells.length?`<div class="tile-sub">${r.cells.filter(Boolean).join(' · ')}</div>`:''}</div>`;
+  }).join('');
+  return `
+  ${nav}
+  <div class="card section">
+    <div class="eyebrow">${day.section||'Séance'}</div>
+    ${isToi && day.cyclePhase?`<div class="row wrap" style="margin:8px 0;"><span class="pill">${day.cyclePhase}</span></div>`:''}
+    ${isToi && day.cycleNote?`<div class="recipe-text">${day.cycleNote}</div>`:''}
+  </div>
+  ${rows? `<div class="section-title"><h2>Programme</h2></div>${rows}` : '<div class="empty">Repos — aucun exercice prévu aujourd\'hui.</div>'}
+  ${isToi && day.boxeNote? `<div class="card section"><div class="eyebrow">🥊 Boxe/MMA</div><div class="recipe-text">${day.boxeNote}</div></div>`:''}
+  `;
+}
+/* ----- Programme posture quotidien (30 jours, en boucle) ----- */
+function posturedayNumber(dateStr){
+  const diff = Math.round((parseISO(dateStr) - parseISO(STATE.profile.dateDebut||APP_START_DATE)) / 864e5);
+  return (((diff % 30) + 30) % 30) + 1;
+}
+function renderSportPosture(){
+  if(!POSTURE_DATA) return '<div class="empty">Programme posture indisponible pour le moment.</div>';
+  const today = todayStr();
+  const jour = posturedayNumber(today);
+  const day = POSTURE_DATA[String(jour)];
+  const log = (STATE.postureLog[today] || {jour, done:[]});
+  return `
+  <div class="row between" style="margin-bottom:10px;">
+    <div><div class="eyebrow">Programme posture 30 jours · en boucle</div><h2 style="font-size:17px;margin-top:4px;">Jour ${jour}${day&&day.weekTitle?' — '+day.weekTitle:''}</h2></div>
+    <span class="pill">${log.done.length}/${day?day.exercises.length:0}</span>
+  </div>
+  ${day? day.exercises.map((ex,i)=>`
+    <div class="list-item" style="flex-direction:column;align-items:flex-start;">
+      <label style="display:flex;gap:8px;align-items:flex-start;width:100%;">
+        <input type="checkbox" data-action="posture-toggle" data-idx="${i}" ${log.done.includes(i)?'checked':''} style="margin-top:3px;">
+        <span style="flex:1;">
+          <b>${ex.name}</b> <span class="pill muted">${ex.dose}</span>
+          ${ex.repere?`<div class="recipe-text" style="margin-top:2px;">${ex.repere}</div>`:''}
+        </span>
+      </label>
+    </div>`).join('') : '<div class="empty">Aucun exercice pour ce jour.</div>'}
+  ${day&&day.douleurTemplate?`<div class="card section"><div class="eyebrow">En cas de douleur</div><div class="recipe-text">${day.douleurTemplate}</div></div>`:''}
+  `;
 }
 
 function renderSportCourse(){
@@ -1733,6 +1994,8 @@ function renderCalendrier(){
   const selPlanned = plannedForDate(sel);
   const selDone = doneTypesForDate(sel);
   const selApts = STATE.appointments.filter(a=>a.date===sel);
+  const selPhase = cyclePhaseForDate(sel);
+  const selIsPeriod = isPeriodDay(sel);
   return `
   <div class="row between section">
     <button class="btn icon" data-action="cal-month" data-delta="-1">‹</button>
@@ -1745,17 +2008,33 @@ function renderCalendrier(){
       if(!dateStr) return `<div></div>`;
       const planned = plannedForDate(dateStr).filter(p=>p!=='repos');
       const done = doneTypesForDate(dateStr);
+      const period = isPeriodDay(dateStr);
       return `<div class="cal-cell ${dateStr===today?'today':''}" data-action="cal-select" data-date="${dateStr}">
         <div class="d-num">${parseISO(dateStr).getDate()}</div>
+        ${period?'<div style="position:absolute;top:3px;right:4px;font-size:10px;">🩸</div>':''}
         <div class="cal-dots">${planned.slice(0,4).map(p=>`<div class="cal-dot ${done.includes(p)?'done':''}"></div>`).join('')}</div>
       </div>`;
     }).join('')}
+  </div>
+  <div class="card section">
+    <div class="eyebrow">Cycle menstruel</div>
+    <div class="row wrap" style="margin:8px 0;">
+      ${selPhase? `<span class="pill">${CYCLE_PHASE_LABEL[selPhase].emoji} ${CYCLE_PHASE_LABEL[selPhase].label}</span>` : '<span class="tile-sub">Note tes règles sur le calendrier pour voir apparaître les phases de ton cycle.</span>'}
+    </div>
+    <button class="btn sm ${selIsPeriod?'primary':''}" data-action="toggle-period" data-date="${sel}">🩸 ${selIsPeriod?'Retirer ce jour de règles':'Marquer le début des règles ce jour'}</button>
+    <details style="margin-top:10px;">
+      <summary style="cursor:pointer;font-size:12px;color:var(--muted);">Réglages du cycle</summary>
+      <div class="field" style="margin-top:8px;"><label>Durée moyenne du cycle (jours)</label><input type="number" data-cycle-field="cycleLength" value="${STATE.cycle.cycleLength}"></div>
+      <div class="field"><label>Durée des règles (jours)</label><input type="number" data-cycle-field="periodLength" value="${STATE.cycle.periodLength}"></div>
+      <button class="btn sm" data-action="save-cycle-settings">Enregistrer</button>
+    </details>
   </div>
   <div class="card">
     <div class="eyebrow">${capitalize(fmtDateLong(sel))}</div>
     <div class="row wrap" style="margin:8px 0;">
       ${selPlanned.map(p=>`<span class="pill ${selDone.includes(p)?'gold':'muted'}">${ACTIVITY_LABEL[p]}</span>`).join('')}
     </div>
+    ${selPhase && (selPhase==='menstruelle'||selPhase==='premenstruelle') ? `<div class="tile-sub" style="margin-bottom:8px;">Séance allégée automatiquement proposée selon ta phase de cycle (le programme habituel reste consultable dans Sport).</div>`:''}
     <button class="btn sm" data-action="edit-day-plan" data-date="${sel}">Modifier le planning de ce jour</button>
     <hr class="sep">
     <div class="eyebrow">Rendez-vous</div>
@@ -1867,9 +2146,16 @@ function renderProfilInfos(){
     <div class="field"><label>Masse grasse (%)</label><input type="number" step="0.1" data-field="masseGrasse" value="${p.masseGrasse}"></div>
     <div class="field"><label>Pas quotidiens actuels (base)</label><input type="number" data-field="pasBase" value="${p.pasBase}"></div>
     <div class="field"><label>Régime alimentaire</label><input type="text" data-field="regime" value="${p.regime}"></div>
+    <div class="field"><label>Objectif</label>
+      <select data-field="objectif">
+        <option value="perte" ${p.objectif==='perte'?'selected':''}>Perte de poids (léger déficit)</option>
+        <option value="maintien" ${p.objectif==='maintien'?'selected':''}>Maintien du poids</option>
+        <option value="prise" ${p.objectif==='prise'?'selected':''}>Prise de masse (léger surplus)</option>
+      </select>
+    </div>
     <button class="btn primary" data-action="save-profile">Enregistrer</button>
   </div>
-  <div class="tile section"><div class="tile-label">Besoins estimés</div><div class="tile-sub" style="margin-top:6px;">~${calorieTarget(p)} kcal/j · ~${proteinTarget(p)} g de protéines/j (estimation indicative, à ajuster avec un professionnel de santé si besoin).</div></div>
+  <div class="tile section"><div class="tile-label">Besoins estimés</div><div class="tile-sub" style="margin-top:6px;">~${calorieTarget(p)} kcal/j · ~${proteinTarget(p)} g de protéines/j selon ton objectif actuel — les repas sont automatiquement ajustés en fonction (jamais sous 1600 kcal / 150 g de protéines). Estimation indicative, à ajuster avec un professionnel de santé si besoin.</div></div>
   `;
 }
 function renderProfilMesures(){
@@ -1954,12 +2240,19 @@ function renderProfilReglages(){
     <div class="recipe-text">Viande, poisson, concombre, aubergine — modifiables dans Nutrition → Aliments.</div>
   </div>
   <div class="card section">
-    <div class="eyebrow">Compte</div>
-    <div class="recipe-text" style="margin-bottom:8px;">Tes données sont sauvegardées automatiquement sur le serveur (et gardées en cache sur cet appareil).</div>
+    <div class="eyebrow">Compte${CURRENT_DISPLAY_NAME?' — '+CURRENT_DISPLAY_NAME:''}</div>
+    <div class="recipe-text" style="margin-bottom:8px;">Tes données sont propres à ton compte, sauvegardées automatiquement sur le serveur (et gardées en cache sur cet appareil). Chaque personne qui utilise l'application crée son propre compte : vos données ne se mélangent jamais.</div>
     <div class="row wrap">
       <a class="btn sm" href="/api/export">💾 Exporter une sauvegarde</a>
       <button class="btn sm" data-action="logout">🔒 Se déconnecter</button>
     </div>
+  </div>
+  <div class="card section">
+    <div class="eyebrow">🔑 Changer de mot de passe</div>
+    <div class="field"><label>Mot de passe actuel</label><input type="password" id="pwd-current" autocomplete="current-password"></div>
+    <div class="field"><label>Nouveau mot de passe</label><input type="password" id="pwd-next" autocomplete="new-password" placeholder="6 caractères minimum"></div>
+    <button class="btn sm" data-action="change-password">Mettre à jour</button>
+    <div class="tile-sub" id="pwd-result" style="margin-top:8px;"></div>
   </div>
   <div class="card">
     <div class="eyebrow">Données</div>
@@ -2260,6 +2553,11 @@ document.addEventListener('click', e=>{
     case 'cal-month': { UI.calMonth+=parseInt(btn.dataset.delta); if(UI.calMonth<0){UI.calMonth=11;UI.calYear--;} if(UI.calMonth>11){UI.calMonth=0;UI.calYear++;} render(); break; }
     case 'cal-select': UI.calSelected = btn.dataset.date; render(); break;
     case 'edit-day-plan': modalDayPlan(btn.dataset.date); break;
+    case 'toggle-period': togglePeriodStart(btn.dataset.date); saveState(); render(); break;
+    case 'save-cycle-settings': {
+      $$('[data-cycle-field]').forEach(inp=>{ STATE.cycle[inp.dataset.cycleField] = parseInt(inp.value)||STATE.cycle[inp.dataset.cycleField]; });
+      saveState(); toast('Réglages du cycle enregistrés'); render(); break;
+    }
     case 'save-day-plan': {
       const cbs = $$('.dayplan-cb').filter(c=>c.checked).map(c=>c.value);
       setPlannedForDate(btn.dataset.date, cbs.length?cbs:['repos']); closeModal(); render(); break;
@@ -2269,6 +2567,17 @@ document.addEventListener('click', e=>{
     case 'delete-apt': STATE.appointments = STATE.appointments.filter(a=>a.id!==btn.dataset.id); saveState(); render(); break;
 
     case 'nut-day': UI.nutritionDate = addDays(UI.nutritionDate, parseInt(btn.dataset.delta)); render(); break;
+    case 'sport-day': UI.sportDate = addDays(UI.sportDate, parseInt(btn.dataset.delta)); render(); break;
+    case 'posture-toggle': {
+      const today = todayStr(); const idx = parseInt(btn.dataset.idx);
+      const jour = posturedayNumber(today);
+      const entry = STATE.postureLog[today] || {jour, done:[]};
+      entry.jour = jour;
+      const pos = entry.done.indexOf(idx);
+      if(pos>=0) entry.done.splice(pos,1); else entry.done.push(idx);
+      STATE.postureLog[today] = entry;
+      saveState(); render(); break;
+    }
     case 'swap-meal': { const slot=btn.dataset.slot; STATE.mealOverrides = STATE.mealOverrides||{}; const key=UI.nutritionDate+slot;
       const season = seasonOf(UI.nutritionDate); let pool = recipesFor(slot, season, STATE.forbidden);
       if(pool.length>1){ const cur = menuForDate(UI.nutritionDate, STATE.forbidden)[slot]; pool = pool.filter(r=>r.id!==cur.id); }
@@ -2313,6 +2622,15 @@ document.addEventListener('click', e=>{
       break;
     }
     case 'logout': fetch('/api/logout',{method:'POST'}).then(()=>{ window.location.href='/login.html'; }); break;
+    case 'change-password': {
+      const current = val('pwd-current'), next = val('pwd-next');
+      const resEl = document.getElementById('pwd-result');
+      fetch('/api/change-password', {method:'POST', credentials:'include', headers:{'Content-Type':'application/json'}, body:JSON.stringify({current, next})})
+        .then(r=>r.json()).then(d=>{
+          if(resEl) resEl.textContent = d.ok ? '✅ Mot de passe mis à jour.' : ('❌ '+(d.error||'Échec de la mise à jour.'));
+        }).catch(()=>{ if(resEl) resEl.textContent = '❌ Erreur réseau.'; });
+      break;
+    }
 
     case 'set-mood': { const t=todayStr(); STATE.checkins[t]=STATE.checkins[t]||{}; STATE.checkins[t].ressenti=parseInt(btn.dataset.v); saveState(); render(); break; }
     case 'save-checkin': { const t=todayStr(); STATE.checkins[t]=STATE.checkins[t]||{};
@@ -2339,7 +2657,7 @@ document.addEventListener('click', e=>{
     case 'toggle-habit': { const h=STATE.goals.habitudes.find(x=>x.id===btn.dataset.id); if(h){h.actif=!h.actif; saveState();} break; }
     case 'delete-habit': STATE.goals.habitudes = STATE.goals.habitudes.filter(h=>h.id!==btn.dataset.id); saveState(); render(); break;
     case 'toggle-notif': STATE.settings.notif[btn.dataset.key] = !STATE.settings.notif[btn.dataset.key]; saveState(); break;
-    case 'reset-all': if(confirm('Réinitialiser toutes les données ? Cette action est irréversible.')){ localStorage.removeItem(STORAGE_KEY); STATE = defaultState(); saveState(); render(); } break;
+    case 'reset-all': if(confirm('Réinitialiser toutes les données ? Cette action est irréversible.')){ localStorage.removeItem(storageKey()); STATE = defaultState(); saveState(); render(); } break;
     case 'set-period': UI.progressPeriod = parseInt(btn.dataset.period); render(); break;
   }
 });
@@ -2377,6 +2695,10 @@ function computeComplement(totals){
     recette:"À répartir sur la journée : par exemple la poudre de protéine dans un yaourt ou un smoothie, les amandes en collation.",
     variante:"Remplacer la poudre de protéine végétale par un supplément de ton choix, ou par 200 g de skyr / fromage blanc supplémentaire." };
 }
+function premenstrualBoost(){
+  const ingredients = [{name:"Chocolat noir 70%", grams:15},{name:"Graines de courge", grams:15}];
+  return { ingredients, macros: sumMacros(ingredients) };
+}
 const _origMenuForDate = menuForDate;
 menuForDate = function(dateStr, forbidden){
   const base = _origMenuForDate(dateStr, forbidden);
@@ -2387,6 +2709,17 @@ menuForDate = function(dateStr, forbidden){
     });
   }
   const totals = ['petitdej','dejeuner','collation','diner'].reduce((a,s)=>{ if(base[s]){a.k+=base[s].macros.k;a.p+=base[s].macros.p;} return a; },{k:0,p:0});
+  base.cyclePhase = cyclePhaseForDate(dateStr);
+  if(base.cyclePhase==='premenstruelle'){
+    const boost = premenstrualBoost();
+    totals.k += boost.macros.k; totals.p += boost.macros.p;
+    base.premenstrualBoost = {
+      slot:'boost', name:'🌙 Boost prémenstruel (magnésium & réconfort)',
+      ingredients: boost.ingredients, macros: boost.macros,
+      recette:"À prendre en collation, par exemple l'après-midi : le magnésium (graines de courge) et le chocolat noir peuvent aider à atténuer le ressenti prémenstruel.",
+      variante:"Remplacer par une infusion apaisante + 2 carrés de chocolat noir si tu préfères plus léger, ou par une poignée d'amandes si tu n'as pas de graines de courge.",
+    };
+  }
   base.complement = computeComplement(totals);
   return base;
 };
@@ -2407,17 +2740,39 @@ function renderSportLibre(){
 }
 
 /* ============================= INIT ============================= */
-render(); // affichage immédiat depuis le cache local (ou les valeurs par défaut)
+const ROLE_DEFAULTS = {
+  toi:      { sexe:'Femme', age:32, taille:173, poids:85.6, masseGrasse:37.2, objectif:'perte', role:'toi' },
+  conjoint: { sexe:'Homme', age:36, taille:174, poids:77.1, masseGrasse:20.6, objectif:'prise', role:'conjoint' },
+  autre:    { role:'autre' },
+};
+function applyRoleFromURL(){
+  try{
+    const params = new URLSearchParams(window.location.search);
+    const role = params.get('role');
+    if(role && ROLE_DEFAULTS[role]){
+      Object.assign(STATE.profile, ROLE_DEFAULTS[role]);
+      // nettoie l'URL pour ne pas réappliquer les valeurs par défaut à chaque rechargement (ex. après un changement manuel de poids)
+      window.history.replaceState({}, '', window.location.pathname);
+    }
+  }catch(e){ /* pas bloquant */ }
+}
+render(); // affichage immédiat avec les valeurs par défaut, le temps d'identifier le compte connecté
+loadRealData().then(render); // charge les cahiers personnalisés en arrière-plan (n'empêche pas l'utilisation du moteur générique en attendant)
 (async function boot(){
+  await loadSession(); // détermine CURRENT_USERNAME avant de toucher le cache local, pour ne jamais mélanger deux comptes sur un même appareil
+  const local = loadStateLocal();
+  if(local){ STATE = local; ensureShape(); render(); }
   const serverState = await loadStateServer();
   if(serverState){
     STATE = serverState;
     ensureShape();
-    try{ localStorage.setItem(STORAGE_KEY, JSON.stringify(STATE)); }catch(e){}
+    try{ localStorage.setItem(storageKey(), JSON.stringify(STATE)); }catch(e){}
     render();
-  } else {
-    // pas d'état côté serveur : on pousse l'état local (première visite)
-    syncToServer();
+  } else if(!local) {
+    // pas d'état côté serveur ni local : première visite — on applique le rôle choisi à l'inscription puis on pousse l'état par défaut
+    applyRoleFromURL();
+    saveState();
+    render();
   }
 })();
 </script>
